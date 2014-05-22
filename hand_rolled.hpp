@@ -2,13 +2,29 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <utility>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 
 // Variation 1: Accept std::reference_wrapper<>.
 #ifndef ACCEPT_REFERENCE_WRAPPER
 #define ACCEPT_REFERENCE_WRAPPER 1
+#endif
+
+#ifndef INSTRUMENT_COPIES
+#define INSTRUMENT_COPIES 1
+#endif
+
+#if INSTRUMENT_COPIES
+std::size_t& allocations ()
+{
+    static std::size_t allocations_ = 0;
+    return allocations_;
+}
+
+std::size_t reset_allocations ()
+{ allocations() = 0; }
 #endif
 
 class any_printable
@@ -18,13 +34,17 @@ public:
     any_printable () = default;
 
     template <typename T>
-    any_printable (T && value) :
+    any_printable (T value) :
         handle_ (
             new handle<typename std::remove_reference<T>::type>(
                 std::forward<T>(value)
             )
         )
-    {}
+    {
+#if INSTRUMENT_COPIES
+        ++allocations();
+#endif
+    }
 
     any_printable (const any_printable & rhs) :
         handle_ (rhs.handle_->clone())
@@ -33,6 +53,13 @@ public:
     any_printable (any_printable && rhs) noexcept = default;
 
     // Assignment
+    template <typename T>
+    any_printable& operator= (T value)
+    {
+        any_printable temp(std::forward<T>(value));
+        std::swap(temp, *this);
+    }
+
     any_printable & operator= (const any_printable & rhs)
     {
         any_printable temp(rhs);
@@ -91,7 +118,12 @@ private:
 #endif
 
         virtual handle_base* clone () const
-        { return new handle(value_); }
+        {
+#if INSTRUMENT_COPIES
+            ++allocations();
+#endif
+            return new handle(value_);
+        }
 
         // Public interface
         virtual void print () const
@@ -125,6 +157,31 @@ struct bye_printable
 {
     void print () const
     { std::cout << "Bye, now!\n"; }
+};
+
+struct large_printable :
+    std::vector<std::string>
+{
+    large_printable () :
+        std::vector<std::string> (1000, std::string(1000, ' '))
+    { ++allocations(); }
+
+    large_printable (const large_printable & rhs) :
+        std::vector<std::string> (rhs)
+    { ++allocations(); }
+
+    large_printable & operator= (const large_printable & rhs)
+    {
+        ++allocations();
+        static_cast<std::vector<std::string> &>(*this) = rhs;
+        return *this;
+    }
+
+    large_printable (large_printable && rhs) = default;
+    large_printable & operator= (large_printable && rhs) = default;
+
+    void print () const
+    { std::cout << "I'm expensive to copy.\n"; }
 };
 
 
