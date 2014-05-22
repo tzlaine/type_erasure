@@ -126,3 +126,11 @@ struct bye_printable
     void print () const
     { std::cout << "Bye, now!\n"; }
 };
+
+
+/* Limitations:
+   1 - Each member functions must be repeated in 3 places.
+   2 - Macros, which could be used to address this, are evil.
+   3 - How do you define an any_fooable type, where foo() is a free function?
+   4 - How do you define an any_barable type, where bar is an operator?
+*/
