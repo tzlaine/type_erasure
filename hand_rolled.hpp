@@ -1,3 +1,6 @@
+#ifndef HAND_ROLLED_INCLUDED__
+#define HAND_ROLLED_INCLUDED__
+
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -192,3 +195,5 @@ struct large_printable :
    3 - How do you define an any_fooable type, where foo() is a free function?
    4 - How do you define an any_barable type, where bar is an operator?
 */
+
+#endif
