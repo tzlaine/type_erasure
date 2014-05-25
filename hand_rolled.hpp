@@ -23,7 +23,7 @@ std::size_t& allocations ()
     return allocations_;
 }
 
-std::size_t reset_allocations ()
+void reset_allocations ()
 { allocations() = 0; }
 #endif
 
@@ -58,6 +58,7 @@ public:
     {
         any_printable temp(std::forward<T>(value));
         std::swap(temp, *this);
+        return *this;
     }
 
     any_printable & operator= (const any_printable & rhs)

@@ -35,21 +35,21 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     ECHO(large_printable large; any_printable ap; ap = large);
     ECHO(bye_printable bye; any_printable ap; ap = bye);
 
-    ECHO(const hi_printable hi; any_printable ap(hi));
-    ECHO(const large_printable large; any_printable ap(large));
-    ECHO(const bye_printable bye; any_printable ap(bye));
+    ECHO(const hi_printable hi{}; any_printable ap(hi));
+    ECHO(const large_printable large{}; any_printable ap(large));
+    ECHO(const bye_printable bye{}; any_printable ap(bye));
 
-    ECHO(const hi_printable hi; any_printable ap = hi);
-    ECHO(const large_printable large; any_printable ap = large);
-    ECHO(const bye_printable bye; any_printable ap = bye);
+    ECHO(const hi_printable hi{}; any_printable ap = hi);
+    ECHO(const large_printable large{}; any_printable ap = large);
+    ECHO(const bye_printable bye{}; any_printable ap = bye);
 
-    ECHO(const hi_printable hi; any_printable tmp = hi; any_printable ap = tmp);
-    ECHO(const large_printable large; any_printable tmp = large; any_printable ap = tmp);
-    ECHO(const bye_printable bye; any_printable tmp = bye; any_printable ap = tmp);
+    ECHO(const hi_printable hi{}; any_printable tmp = hi; any_printable ap = tmp);
+    ECHO(const large_printable large{}; any_printable tmp = large; any_printable ap = tmp);
+    ECHO(const bye_printable bye{}; any_printable tmp = bye; any_printable ap = tmp);
 
-    ECHO(const hi_printable hi; any_printable ap; ap = hi);
-    ECHO(const large_printable large; any_printable ap; ap = large);
-    ECHO(const bye_printable bye; any_printable ap; ap = bye);
+    ECHO(const hi_printable hi{}; any_printable ap; ap = hi);
+    ECHO(const large_printable large{}; any_printable ap; ap = large);
+    ECHO(const bye_printable bye{}; any_printable ap; ap = bye);
 
     ECHO(any_printable ap(hi_printable{}));
     ECHO(any_printable ap(large_printable{}));
@@ -74,9 +74,9 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     hi_printable hi;
     large_printable large;
     bye_printable bye;
-    const hi_printable const_hi;
-    const large_printable const_large;
-    const bye_printable const_bye;
+    const hi_printable const_hi{};
+    const large_printable const_large{};
+    const bye_printable const_bye{};
     std::vector<any_printable> several_printables = {
         hi,
         large,
