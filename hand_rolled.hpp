@@ -194,6 +194,7 @@ struct large_printable :
    2 - Macros, which could be used to address this, are evil.
    3 - How do you define an any_fooable type, where foo() is a free function?
    4 - How do you define an any_barable type, where bar is an operator?
+   5 - How do you apply the small buffer optimization to handle small types without making allocations?
 */
 
 #endif
