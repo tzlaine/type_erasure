@@ -70,7 +70,10 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 #endif
 
 #undef ECHO
+}
 
+BOOST_AUTO_TEST_CASE(hand_rolled_vector)
+{
     hi_printable hi;
     large_printable large;
     bye_printable bye;
@@ -94,4 +97,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     for (const auto & printable : several_printables) {
         printable.print();
     }
+
+    std::cout << "allocations: " << allocations() << "\n\n";
+    reset_allocations();
 }
