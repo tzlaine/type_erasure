@@ -12,7 +12,7 @@ struct copy_on_write
 
     copy_on_write ()
     {
-        std::call_once(make_default, flag_s);
+        std::call_once(flag_s, make_default);
         impl_ = default_s;
     }
 
