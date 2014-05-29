@@ -113,10 +113,6 @@ private:
         {}
 #else
         handle (T value) :
-            value_ (value)
-        {}
-
-        handle (T && value) noexcept :
             value_ (std::move(value))
         {}
 #endif
