@@ -37,10 +37,10 @@ struct copy_on_write
     operator const value_type & () const
     { return read(); }
 
-    const value_type & operator*() const
+    const value_type & operator* () const
     { return read(); }
  
-    const value_type * operator->() const
+    const value_type * operator-> () const
     { return &read(); }
 
     bool unique () const
