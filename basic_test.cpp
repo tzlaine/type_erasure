@@ -2,6 +2,7 @@
 #define INSTRUMENT_COPIES 1
 
 #include "hand_rolled.hpp"
+#include "hand_rolled_cow.hpp"
 #include "copy_on_write.hpp"
 
 
@@ -99,6 +100,8 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector)
         printable.print();
     }
 
+    std::vector<any_printable> several_printables_copy = several_printables;
+
     std::cout << "allocations: " << allocations() << "\n\n";
     reset_allocations();
 }
@@ -128,6 +131,40 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector_copy_on_write)
     for (const auto & printable : several_printables) {
         printable->print();
     }
+
+    std::vector<copy_on_write<any_printable>> several_printables_copy = several_printables;
+
+    std::cout << "allocations: " << allocations() << "\n\n";
+    reset_allocations();
+}
+
+BOOST_AUTO_TEST_CASE(hand_rolled_cow_vector)
+{
+    hi_printable hi;
+    large_printable large;
+    bye_printable bye;
+    const hi_printable const_hi{};
+    const large_printable const_large{};
+    const bye_printable const_bye{};
+    std::vector<any_printable_cow> several_printables = {
+        {hi},
+        {large},
+        {bye},
+#if ACCEPT_REFERENCE_WRAPPER
+        {std::ref(hi)},
+        {std::ref(large)},
+        {std::cref(bye)},
+#endif
+        {const_hi},
+        {const_large},
+        {const_bye}
+    };
+
+    for (const auto & printable : several_printables) {
+        printable.print();
+    }
+
+    std::vector<any_printable_cow> several_printables_copy = several_printables;
 
     std::cout << "allocations: " << allocations() << "\n\n";
     reset_allocations();
