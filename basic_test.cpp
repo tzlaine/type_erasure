@@ -76,24 +76,9 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
 BOOST_AUTO_TEST_CASE(hand_rolled_vector)
 {
-    hi_printable hi;
-    large_printable large;
-    bye_printable bye;
-    const hi_printable const_hi{};
-    const large_printable const_large{};
-    const bye_printable const_bye{};
     std::vector<any_printable> several_printables = {
-        hi,
-        large,
-        bye,
-#if ACCEPT_REFERENCE_WRAPPER
-        std::ref(hi),
-        std::ref(large),
-        std::cref(bye),
-#endif
-        const_hi,
-        const_large,
-        const_bye
+        hi_printable{},
+        large_printable{}
     };
 
     for (const auto & printable : several_printables) {
@@ -108,24 +93,9 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector)
 
 BOOST_AUTO_TEST_CASE(hand_rolled_vector_copy_on_write)
 {
-    hi_printable hi;
-    large_printable large;
-    bye_printable bye;
-    const hi_printable const_hi{};
-    const large_printable const_large{};
-    const bye_printable const_bye{};
     std::vector<copy_on_write<any_printable>> several_printables = {
-        {hi},
-        {large},
-        {bye},
-#if ACCEPT_REFERENCE_WRAPPER
-        {std::ref(hi)},
-        {std::ref(large)},
-        {std::cref(bye)},
-#endif
-        {const_hi},
-        {const_large},
-        {const_bye}
+        {hi_printable{}},
+        {large_printable{}}
     };
 
     for (const auto & printable : several_printables) {
@@ -140,24 +110,9 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector_copy_on_write)
 
 BOOST_AUTO_TEST_CASE(hand_rolled_cow_vector)
 {
-    hi_printable hi;
-    large_printable large;
-    bye_printable bye;
-    const hi_printable const_hi{};
-    const large_printable const_large{};
-    const bye_printable const_bye{};
     std::vector<any_printable_cow> several_printables = {
-        {hi},
-        {large},
-        {bye},
-#if ACCEPT_REFERENCE_WRAPPER
-        {std::ref(hi)},
-        {std::ref(large)},
-        {std::cref(bye)},
-#endif
-        {const_hi},
-        {const_large},
-        {const_bye}
+        {hi_printable{}},
+        {large_printable{}}
     };
 
     for (const auto & printable : several_printables) {
