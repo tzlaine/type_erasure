@@ -1,6 +1,7 @@
 #include <clang-c/Index.h>
 
 #include <array>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -26,6 +27,27 @@ struct client_data
     const char* filename;
     bool include_guarded;
 };
+
+std::string file_slurp (const std::string & filename)
+{
+    std::string retval;
+
+    std::ifstream ifs(filename, std::ifstream::in | std::ifstream::binary);
+    ifs.seekg(0, std::ifstream::end);
+    retval.resize(ifs.tellg());
+    ifs.seekg(0);
+
+    const std::streamsize read_size = 64 * 1024; // 64k per read
+    char* retval_pos = &retval[0];
+    std::streamsize bytes_read = 0;
+    do {
+        ifs.read(retval_pos, read_size);
+        bytes_read = ifs.gcount();
+        retval_pos += bytes_read;
+    } while (bytes_read == read_size);
+
+    return retval;
+}
 
 std::pair<CXToken*, unsigned int>
 get_tokens (CXTranslationUnit tu, CXCursor cursor)
