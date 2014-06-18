@@ -69,7 +69,9 @@ std::string indent (const client_data& data)
     return std::string(size * indent_spaces, ' ');
 }
 
-void print (const client_data& data, const char** lines, std::size_t num_lines)
+void print_lines (const client_data& data,
+                  const char** lines,
+                  std::size_t num_lines)
 {
     std::string padding(indent_spaces, ' ');
     for (unsigned int i = 0; i < num_lines; ++i) {
@@ -142,9 +144,9 @@ void open_struct (const client_data& data, CXCursor struct_cursor)
         "any_printable & operator= (any_printable && rhs) noexcept = default;"
     };
 
-    print(data,
-          public_interface,
-          sizeof(public_interface) / sizeof(const char*));
+    print_lines(data,
+                public_interface,
+                sizeof(public_interface) / sizeof(const char*));
 }
 
 void close_struct (const client_data& data)
@@ -161,9 +163,9 @@ void close_struct (const client_data& data)
         0
     };
 
-    print(data,
-          handle_base_preamble,
-          sizeof(handle_base_preamble) / sizeof(const char*));
+    print_lines(data,
+                handle_base_preamble,
+                sizeof(handle_base_preamble) / sizeof(const char*));
 
     // TODO: pure virtual
 
@@ -195,9 +197,9 @@ void close_struct (const client_data& data)
         "    { return std::make_shared<handle>(value_); }"
     };
 
-    print(data,
-          handle_preamble,
-          sizeof(handle_preamble) / sizeof(const char*));
+    print_lines(data,
+                handle_preamble,
+                sizeof(handle_preamble) / sizeof(const char*));
 
     // TODO: virtual implementations
 
@@ -228,9 +230,9 @@ void close_struct (const client_data& data)
         "std::shared_ptr<handle_base> handle_;"
     };
 
-    print(data,
-          handle_postamble,
-          sizeof(handle_postamble) / sizeof(const char*));
+    print_lines(data,
+                handle_postamble,
+                sizeof(handle_postamble) / sizeof(const char*));
 
     std::cout << "\n"
               << indent(data) << "};\n";
