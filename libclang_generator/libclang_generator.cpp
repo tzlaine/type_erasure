@@ -1,5 +1,4 @@
 #include <clang-c/Index.h>
-#include <cstdio>
 
 #include <array>
 #include <iostream>
