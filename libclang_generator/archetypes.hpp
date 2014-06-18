@@ -1,6 +1,8 @@
 #ifndef INCLUDE_GUARD
 #define INCLUDE_GUARD
 
+#include <cstdlib>
+
 
 namespace some_ns {
 

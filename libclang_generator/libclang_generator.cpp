@@ -24,6 +24,7 @@ struct client_data
     // keyword, and function name
     std::vector<std::array<std::string, 4>> member_functions;
     bool printed_headers;
+    const char* filename;
 };
 
 std::pair<CXToken*, unsigned int>
@@ -313,7 +314,8 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
     }
     if (!clang_equalCursors(enclosing_namespace, tu_cursor) &&
         clang_getCursorKind(enclosing_namespace) == CXCursor_Namespace) {
-        while (!clang_equalCursors(enclosing_namespace,
+        while (!data.current_namespaces.empty() &&
+               !clang_equalCursors(enclosing_namespace,
                                    data.current_namespaces.back())) {
             data.current_namespaces.pop_back();
             close_namespace(data);
@@ -335,9 +337,13 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
 
     CXCursorKind kind = clang_getCursorKind(cursor);
     if (kind == CXCursor_Namespace) {
-        print_headers(data);
-        open_namespace(data, cursor);
-        data.current_namespaces.push_back(cursor);
+        CXSourceLocation location = clang_getCursorLocation(cursor);
+        const bool from_main_file = clang_Location_isFromMainFile(location);
+        if (from_main_file) {
+            print_headers(data);
+            open_namespace(data, cursor);
+            data.current_namespaces.push_back(cursor);
+        }
         return CXChildVisit_Recurse;
     } else if (struct_kind(kind)) {
         if (clang_Cursor_isNull(data.current_struct)) {
@@ -410,7 +416,10 @@ int main (int argc, char* argv[])
         CXTranslationUnit_DetailedPreprocessingRecord
     );
 
-    client_data data = {tu, {}, clang_getNullCursor(), {}, false};
+    const char* filename =
+        clang_getCString(clang_getTranslationUnitSpelling(tu));
+
+    client_data data = {tu, {}, clang_getNullCursor(), {}, false, filename};
 
     tu_cursor = clang_getTranslationUnitCursor(tu);
     clang_visitChildren(tu_cursor, visitor, &data);
