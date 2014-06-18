@@ -69,6 +69,17 @@ std::string indent (const client_data& data)
     return std::string(size * indent_spaces, ' ');
 }
 
+void print (const client_data& data, const char** lines, std::size_t num_lines)
+{
+    std::string padding(indent_spaces, ' ');
+    for (unsigned int i = 0; i < num_lines; ++i) {
+        if (lines[i])
+            std::cout << indent(data) << padding << lines[i] << "\n";
+        else
+            std::cout << "\n";
+    }
+}
+
 void open_struct (const client_data& data, CXCursor struct_cursor)
 {
     std::pair<CXToken*, unsigned int> tokens =
@@ -107,48 +118,119 @@ void open_struct (const client_data& data, CXCursor struct_cursor)
         0,
         "any_printable () = default;",
         0,
-        "template <typename T>",
-        "any_printable (T value) :",
+        "template <typename T_T__>",
+        "any_printable (T_T__ value) :",
         "    handle_ (",
         "        std::make_shared<",
-        "            handle<typename std::remove_reference<T>::type>",
-        "        >(std::forward<T>(value))",
+        "            handle<typename std::remove_reference<T_T__>::type>",
+        "        >(std::forward<T_T__>(value))",
         "    )",
         "{}",
         0,
         "any_printable (any_printable && rhs) noexcept = default;",
         0,
-        "template <typename T>",
-        "any_printable & operator= (T value)",
+        "template <typename T_T__>",
+        "any_printable & operator= (T_T__ value)",
         "{",
         "    if (handle_.unique())",
-        "        *handle_ = std::forward<T>(value);",
+        "        *handle_ = std::forward<T_T__>(value);",
         "    else if (!handle_)",
-        "        handle_ = std::make_shared<T>(std::forward<T>(value));",
+        "        handle_ = std::make_shared<T_T__>(std::forward<T_T__>(value));",
         "    return *this;",
         "}",
         0,
         "any_printable & operator= (any_printable && rhs) noexcept = default;"
     };
 
-    std::string padding(indent_spaces, ' ');
-    for (unsigned int i = 0;
-         i < sizeof(public_interface) / sizeof(const char*);
-         ++i) {
-        if (public_interface[i])
-            std::cout << indent(data) << padding << public_interface[i] << "\n";
-        else
-            std::cout << "\n";
-    }
+    print(data,
+          public_interface,
+          sizeof(public_interface) / sizeof(const char*));
 }
 
 void close_struct (const client_data& data)
 {
-    std::cout << "\n\n"
+    std::cout << "\n"
               << indent(data) << "private:\n";
 
-    std::cout << "\n"
-              << indent(data) << "    // TODO\n";
+    const char* handle_base_preamble[] = {
+        0,
+        "struct handle_base",
+        "{",
+        "    virtual ~handle_base () {}",
+        "    virtual std::shared_ptr<handle_base> close () const = 0;",
+        0
+    };
+
+    print(data,
+          handle_base_preamble,
+          sizeof(handle_base_preamble) / sizeof(const char*));
+
+    // TODO: pure virtual
+
+    const char* handle_preamble[] = {
+        "};",
+        0,
+        "template <typename T_T__>",
+        "struct handle :",
+        "    handle_base",
+        "{",
+        "    template <typename T_T__>",
+        "    handle (T_T__ value,",
+        "            typename std::enable_if<",
+        "                std::is_reference<U_U__>::value",
+        "            >::type* = 0) :",
+        "        value_ (value)",
+        "    {}",
+        0,
+        "    template <typename U_U__ = T_T__>",
+        "    handle (T_T__ value,",
+        "            typename std::enable_if<",
+        "                !std::is_reference<U_U__>::value,",
+        "                int",
+        "            >::type* = 0) noexcept :",
+        "        value_ (std::move(value))",
+        "    {}",
+        0,
+        "    virtual std::shared_ptr<handle_base> clone () const",
+        "    { return std::make_shared<handle>(value_); }"
+    };
+
+    print(data,
+          handle_preamble,
+          sizeof(handle_preamble) / sizeof(const char*));
+
+    // TODO: virtual implementations
+
+    const char* handle_postamble[] = {
+        0,
+        "    T_T__ value_;",
+        "};",
+        0,
+        "template <typename T_T__>",
+        "struct handle<std::reference_wrapper<T_T__>> :",
+        "    handle<T_T__ &>",
+        "{",
+        "    handle (std::reference_wrapper<T_T__> ref) :",
+        "        handle<T_T__ &> (ref.get())",
+        "    {}",
+        "};",
+        0,
+        "const handle_base & read () const",
+        "{ return *handle_; }",
+        0,
+        "handle_base & write ()",
+        "{",
+        "    if (!handle_.unique())",
+        "        handle_ = handle_->clone();",
+        "    return *handle_;",
+        "}",
+        0,
+        "std::shared_ptr<handle_base> handle_;"
+    };
+
+    print(data,
+          handle_postamble,
+          sizeof(handle_postamble) / sizeof(const char*));
 
     std::cout << "\n"
               << indent(data) << "};\n";
