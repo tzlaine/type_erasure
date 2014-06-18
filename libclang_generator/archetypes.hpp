@@ -6,18 +6,27 @@ namespace some_ns {
         explicit any_foo (int i);
         void print () const;
         void print ();
+
+        struct ignored_nested_struct
+        {
+            int i;
+        };
     };
 
     bool operator< (any_foo lhs, any_foo rhs);
 
-    class any_bar
-    {
-        explicit any_bar (int i);
-        void print () const;
-        void print ();
-    };
+    namespace some_other_ns {
 
-    bool operator< (any_bar lhs, any_bar rhs);
+        class any_bar
+        {
+            explicit any_bar (int i);
+            void print () const;
+            void print ();
+        };
+
+        bool operator< (any_bar lhs, any_bar rhs);
+
+    }
 
     template <typename T>
     struct any_foo_template
