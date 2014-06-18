@@ -20,8 +20,8 @@ namespace some_ns {
         class any_bar
         {
             explicit any_bar (int i);
-            void print () const;
-            void print ();
+            std::size_t index (std::size_t i) const;
+            void print (double d);
         };
 
         bool operator< (any_bar lhs, any_bar rhs);
@@ -43,8 +43,8 @@ namespace some_ns {
     class any_bar_template
     {
         explicit any_bar_template (int i);
-        void print () const;
-        void print ();
+        T get () const;
+        T get ();
     };
 
     template <typename T>

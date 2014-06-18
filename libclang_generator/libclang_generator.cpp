@@ -5,6 +5,10 @@
 #include <vector>
 
 
+namespace {
+    const unsigned int indent_spaces = 4;
+}
+
 CXCursor tu_cursor;
 
 struct client_data
@@ -59,10 +63,10 @@ bool struct_kind (CXCursorKind kind)
     return false;
 }
 
-void indent (const client_data& data)
+std::string indent (const client_data& data)
 {
     std::size_t size = data.current_namespaces.size();
-    std::cout << std::string(size * 4, ' ');
+    return std::string(size * indent_spaces, ' ');
 }
 
 void open_struct (const client_data& data, CXCursor struct_cursor)
@@ -70,8 +74,7 @@ void open_struct (const client_data& data, CXCursor struct_cursor)
     std::pair<CXToken*, unsigned int> tokens =
         get_tokens(data.tu, struct_cursor);
 
-    std::cout << "\n";
-    indent(data);
+    std::cout << "\n" << indent(data);
 
     const std::string open_brace = "{";
     const std::string struct_ = "struct";
@@ -82,44 +85,130 @@ void open_struct (const client_data& data, CXCursor struct_cursor)
 
         const char* c_str = clang_getCString(spelling);
 
+        if (c_str == open_brace)
+            break;
+
         if (c_str == struct_ || c_str == class_) {
-            std::cout << "\n";
-            indent(data);
+            std::cout << "\n" << indent(data);
         } else if (i) {
             std::cout << " ";
         }
 
         std::cout << c_str;
-        if (c_str == open_brace)
-            break;
     }
 
     free_tokens(data.tu, tokens);
+
+    std::cout << "\n"
+              << indent(data) << "{\n"
+              << indent(data) << "public:\n";
+
+    const char* public_interface[] = {
+        0,
+        "any_printable () = default;",
+        0,
+        "template <typename T>",
+        "any_printable (T value) :",
+        "    handle_ (",
+        "        std::make_shared<",
+        "            handle<typename std::remove_reference<T>::type>",
+        "        >(std::forward<T>(value))",
+        "    )",
+        "{}",
+        0,
+        "any_printable (any_printable && rhs) noexcept = default;",
+        0,
+        "template <typename T>",
+        "any_printable & operator= (T value)",
+        "{",
+        "    if (handle_.unique())",
+        "        *handle_ = std::forward<T>(value);",
+        "    else if (!handle_)",
+        "        handle_ = std::make_shared<T>(std::forward<T>(value));",
+        "    return *this;",
+        "}",
+        0,
+        "any_printable & operator= (any_printable && rhs) noexcept = default;"
+    };
+
+    std::string padding(indent_spaces, ' ');
+    for (unsigned int i = 0;
+         i < sizeof(public_interface) / sizeof(const char*);
+         ++i) {
+        if (public_interface[i])
+            std::cout << indent(data) << padding << public_interface[i] << "\n";
+        else
+            std::cout << "\n";
+    }
 }
 
 void close_struct (const client_data& data)
 {
-    std::cout << "\n";
-    indent(data);
-    std::cout << "};\n";
+    std::cout << "\n\n"
+              << indent(data) << "private:\n";
+
+    std::cout << "\n"
+              << indent(data) << "    // TODO\n";
+
+    std::cout << "\n"
+              << indent(data) << "};\n";
+}
+
+void print_member_function(const client_data& data, CXCursor cursor)
+{
+    std::pair<CXToken*, unsigned int> tokens = get_tokens(data.tu, cursor);
+
+    std::cout << "\n"
+              << std::string(indent_spaces, ' ') << indent(data);
+
+    const std::string open_brace = "{";
+    const std::string semicolon = ";";
+
+    for (unsigned int i = 0; i < tokens.second; ++i) {
+        CXString spelling = clang_getTokenSpelling(data.tu, tokens.first[i]);
+
+        const char* c_str = clang_getCString(spelling);
+
+        if (c_str == open_brace || c_str == semicolon)
+            break;
+
+        if (i)
+            std::cout << " ";
+
+        std::cout << c_str;
+    }
+
+    free_tokens(data.tu, tokens);
+
+    const char* return_str =
+        clang_getCursorResultType(cursor).kind == CXType_Void ? "" : "return ";
+
+    std::cout << "\n" << std::string(indent_spaces, ' ') << indent(data)
+              << "{ assert(handle_); " << return_str << "handle_->"
+              << clang_getCString(clang_getCursorSpelling(cursor))
+              << "( ";
+    const int args = clang_Cursor_getNumArguments(cursor);
+    for (int i = 0; i < args; ++i) {
+        if (i)
+            std::cout << ", ";
+        CXCursor arg_cursor = clang_Cursor_getArgument(cursor, i);
+        std::cout << clang_getCString(clang_getCursorSpelling(arg_cursor));
+    }
+    std::cout << " ); }\n";
 }
 
 void open_namespace (const client_data& data, CXCursor namespace_)
 {
-    std::cout << "\n";
-    indent(data);
     std::cout
+        << "\n"
+        << indent(data)
         << "namespace "
         << clang_getCString(clang_getCursorSpelling(namespace_))
         << " {";
 }
 
 void close_namespace (const client_data& data)
-{
-    std::cout << "\n";
-    indent(data);
-    std::cout << "}\n";
-}
+{ std::cout << "\n" << indent(data) << "}\n"; }
 
 void dump_cursor (const char* name, CXCursor cursor)
 {
@@ -190,6 +279,8 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
             open_struct(data, cursor);
             return CXChildVisit_Recurse;
         }
+    } else if (kind == CXCursor_CXXMethod) {
+        print_member_function(data, cursor);
     }
 
     return CXChildVisit_Continue;
