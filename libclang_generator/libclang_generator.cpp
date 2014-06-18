@@ -45,11 +45,13 @@ void
 free_tokens (CXTranslationUnit tu, std::pair<CXToken*, unsigned int> tokens)
 { clang_disposeTokens(tu, tokens.first, tokens.second); }
 
-void print_tokens (CXTranslationUnit tu, CXCursor cursor)
+void print_tokens (CXTranslationUnit tu, CXCursor cursor, bool elide_final_token)
 {
     std::pair<CXToken*, unsigned int> tokens = get_tokens(tu, cursor);
 
-    for (unsigned int i = 0; i < tokens.second; ++i) {
+    const unsigned int num_tokens =
+        tokens.second && elide_final_token ? tokens.second - 1 : tokens.second;
+    for (unsigned int i = 0; i < num_tokens; ++i) {
         if (i)
             std::cout << " ";
         CXString spelling = clang_getTokenSpelling(tu, tokens.first[i]);
@@ -420,6 +422,12 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
     return CXChildVisit_Continue;
 }
 
+CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange range)
+{
+    print_tokens(static_cast<CXTranslationUnit>(context), cursor, true);
+    return CXVisit_Continue;
+}
+
 int main (int argc, char* argv[])
 {
     CXIndex index = clang_createIndex(0, 1);
@@ -435,6 +443,11 @@ int main (int argc, char* argv[])
 
     const char* filename =
         clang_getCString(clang_getTranslationUnitSpelling(tu));
+
+    CXFile file = clang_getFile(tu, filename);
+    CXCursorAndRangeVisitor visitor_ = {tu, visit_includes};
+    clang_findIncludesInFile(tu, file, visitor_);
+    std::cout << "\n";
 
     client_data data = {tu, {}, clang_getNullCursor(), {}, false, filename};
 
