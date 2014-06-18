@@ -1,12 +1,14 @@
 #include <clang-c/Index.h>
 #include <cstdio>
 
+#include <array>
 #include <iostream>
 #include <vector>
 
 
 namespace {
     const unsigned int indent_spaces = 4;
+    const std::string indentation(indent_spaces, ' ');
 }
 
 CXCursor tu_cursor;
@@ -16,6 +18,9 @@ struct client_data
     CXTranslationUnit tu;
     std::vector<CXCursor> current_namespaces;
     CXCursor current_struct;
+    // function signature, forwarding call arguments, optional return
+    // keyword, and function name
+    std::vector<std::array<std::string, 4>> member_functions;
 };
 
 std::pair<CXToken*, unsigned int>
@@ -73,10 +78,9 @@ void print_lines (const client_data& data,
                   const char** lines,
                   std::size_t num_lines)
 {
-    std::string padding(indent_spaces, ' ');
     for (unsigned int i = 0; i < num_lines; ++i) {
         if (lines[i])
-            std::cout << indent(data) << padding << lines[i] << "\n";
+            std::cout << indent(data) << indentation << lines[i] << "\n";
         else
             std::cout << "\n";
     }
@@ -167,9 +171,13 @@ void close_struct (const client_data& data)
                 handle_base_preamble,
                 sizeof(handle_base_preamble) / sizeof(const char*));
 
-    // TODO: pure virtual
+    for (auto & member : data.member_functions) {
+        std::cout << indent(data) << indentation << indentation
+                  << "virtual " << member[0] << " = 0;\n";
+    }
 
     const char* handle_preamble[] = {
+        0,
         "};",
         0,
         "template <typename T_T__>",
@@ -201,7 +209,14 @@ void close_struct (const client_data& data)
                 handle_preamble,
                 sizeof(handle_preamble) / sizeof(const char*));
 
-    // TODO: virtual implementations
+    for (auto & member : data.member_functions) {
+        std::cout << "\n"
+                  << indent(data) << indentation << indentation
+                  << "virtual " << member[0] << "\n"
+                  << indent(data) << indentation << indentation
+                  << "{ " << member[2] << "value_." << member[3]
+                  << "( " << member[1] << " ); }\n";
+    }
 
     const char* handle_postamble[] = {
         0,
@@ -238,47 +253,17 @@ void close_struct (const client_data& data)
               << indent(data) << "};\n";
 }
 
-void print_member_function(const client_data& data, CXCursor cursor)
+void print_member_function (const client_data& data, CXCursor cursor)
 {
-    std::pair<CXToken*, unsigned int> tokens = get_tokens(data.tu, cursor);
-
     std::cout << "\n"
-              << std::string(indent_spaces, ' ') << indent(data);
-
-    const std::string open_brace = "{";
-    const std::string semicolon = ";";
-
-    for (unsigned int i = 0; i < tokens.second; ++i) {
-        CXString spelling = clang_getTokenSpelling(data.tu, tokens.first[i]);
-
-        const char* c_str = clang_getCString(spelling);
-
-        if (c_str == open_brace || c_str == semicolon)
-            break;
-
-        if (i)
-            std::cout << " ";
-
-        std::cout << c_str;
-    }
-
-    free_tokens(data.tu, tokens);
-
-    const char* return_str =
-        clang_getCursorResultType(cursor).kind == CXType_Void ? "" : "return ";
+              << std::string(indent_spaces, ' ') << indent(data)
+              << data.member_functions.back()[0];
 
     std::cout << "\n" << std::string(indent_spaces, ' ') << indent(data)
-              << "{ assert(handle_); " << return_str << "handle_->"
+              << "{ assert(handle_); " << data.member_functions.back()[2]
+              << "handle_->"
               << clang_getCString(clang_getCursorSpelling(cursor))
-              << "( ";
-    const int args = clang_Cursor_getNumArguments(cursor);
-    for (int i = 0; i < args; ++i) {
-        if (i)
-            std::cout << ", ";
-        CXCursor arg_cursor = clang_Cursor_getArgument(cursor, i);
-        std::cout << clang_getCString(clang_getCursorSpelling(arg_cursor));
-    }
-    std::cout << " ); }\n";
+              << "( " << data.member_functions.back()[1] << " ); }\n";
 }
 
 void open_namespace (const client_data& data, CXCursor namespace_)
@@ -350,6 +335,7 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
         !clang_equalCursors(enclosing_struct, data.current_struct)) {
         data.current_struct = null_cursor;
         close_struct(data);
+        data.member_functions.clear();
     }
 
     CXCursorKind kind = clang_getCursorKind(cursor);
@@ -364,6 +350,50 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
             return CXChildVisit_Recurse;
         }
     } else if (kind == CXCursor_CXXMethod) {
+        std::pair<CXToken*, unsigned int> tokens = get_tokens(data.tu, cursor);
+
+        const std::string open_brace = "{";
+        const std::string semicolon = ";";
+
+        std::string str;
+
+        for (unsigned int i = 0; i < tokens.second; ++i) {
+            CXString spelling =
+                clang_getTokenSpelling(data.tu, tokens.first[i]);
+
+            const char* c_str = clang_getCString(spelling);
+
+            if (c_str == open_brace || c_str == semicolon)
+                break;
+
+            if (i)
+                str += " ";
+
+            str += c_str;
+        }
+
+        std::string args;
+
+        const int num_args = clang_Cursor_getNumArguments(cursor);
+        for (int i = 0; i < num_args; ++i) {
+            if (i)
+                args += ", ";
+            CXCursor arg_cursor = clang_Cursor_getArgument(cursor, i);
+            args += clang_getCString(clang_getCursorSpelling(arg_cursor));
+        }
+
+        const char* return_str =
+            clang_getCursorResultType(cursor).kind == CXType_Void ?
+            "" :
+            "return ";
+
+        const char* function_name =
+            clang_getCString(clang_getCursorSpelling(cursor));
+
+        free_tokens(data.tu, tokens);
+
+        data.member_functions.push_back({str, args, return_str, function_name});
+
         print_member_function(data, cursor);
     }
 
