@@ -24,6 +24,7 @@ struct client_data
     std::vector<std::array<std::string, 4>> member_functions;
     bool printed_headers;
     const char* filename;
+    bool include_guarded;
 };
 
 std::pair<CXToken*, unsigned int>
@@ -69,6 +70,8 @@ bool struct_kind (CXCursorKind kind)
     case CXCursor_ClassTemplate:
     case CXCursor_ClassTemplatePartialSpecialization:
         return true;
+    default:
+        return false;
     }
     return false;
 }
@@ -314,7 +317,31 @@ void close_namespace (const client_data & data)
 { std::cout << "\n" << indent(data) << "}\n"; }
 
 CXChildVisitResult
-visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
+visit_preprocessor_defines (CXCursor cursor, CXCursor parent, CXClientData data_)
+{
+    client_data & data = *static_cast<client_data*>(data_);
+
+    if (!data.include_guarded)
+        return CXChildVisit_Break;
+
+    CXSourceLocation location = clang_getCursorLocation(cursor);
+    const bool from_main_file = clang_Location_isFromMainFile(location);
+
+    CXCursorKind kind = clang_getCursorKind(cursor);
+    if (!from_main_file) {
+        return CXChildVisit_Continue;
+    } else if (kind == CXCursor_MacroDefinition) {
+        const char* guard = clang_getCString(clang_getCursorSpelling(cursor));
+        std::cout << "#ifndef " << guard << "\n"
+                  << "#define " << guard << "\n"
+                  << "\n";
+        return CXChildVisit_Break;
+    }
+    return CXChildVisit_Recurse;
+}
+
+CXChildVisitResult
+visit (CXCursor cursor, CXCursor parent, CXClientData data_)
 {
     client_data & data = *static_cast<client_data*>(data_);
 
@@ -444,14 +471,21 @@ int main (int argc, char* argv[])
         clang_getCString(clang_getTranslationUnitSpelling(tu));
 
     CXFile file = clang_getFile(tu, filename);
-    CXCursorAndRangeVisitor visitor_ = {tu, visit_includes};
-    clang_findIncludesInFile(tu, file, visitor_);
-    std::cout << "\n";
 
-    client_data data = {tu, {}, clang_getNullCursor(), {}, false, filename};
+    const bool include_guarded = clang_isFileMultipleIncludeGuarded(tu, file);
+
+    client_data data =
+        {tu, {}, clang_getNullCursor(), {}, false, filename, include_guarded};
 
     tu_cursor = clang_getTranslationUnitCursor(tu);
-    clang_visitChildren(tu_cursor, visitor, &data);
+
+    clang_visitChildren(tu_cursor, visit_preprocessor_defines, &data);
+
+    CXCursorAndRangeVisitor visitor = {tu, visit_includes};
+    clang_findIncludesInFile(tu, file, visitor);
+    std::cout << "\n";
+
+    clang_visitChildren(tu_cursor, visit, &data);
 
     if (!clang_Cursor_isNull(data.current_struct))
         close_struct(data);
@@ -460,6 +494,9 @@ int main (int argc, char* argv[])
         data.current_namespaces.pop_back();
         close_namespace(data);
     }
+
+    if (include_guarded)
+        std::cout << "\n#endif\n";
 
     clang_disposeTranslationUnit(tu);
     clang_disposeIndex(index);
