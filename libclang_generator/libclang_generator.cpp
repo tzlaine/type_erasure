@@ -335,16 +335,19 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
         data.member_functions.clear();
     }
 
+    CXSourceLocation location = clang_getCursorLocation(cursor);
+    const bool from_main_file = clang_Location_isFromMainFile(location);
+
     CXCursorKind kind = clang_getCursorKind(cursor);
     if (kind == CXCursor_Namespace) {
-        CXSourceLocation location = clang_getCursorLocation(cursor);
-        const bool from_main_file = clang_Location_isFromMainFile(location);
         if (from_main_file) {
             print_headers(data);
             open_namespace(data, cursor);
             data.current_namespaces.push_back(cursor);
         }
         return CXChildVisit_Recurse;
+    } else if (!from_main_file) {
+        return CXChildVisit_Continue;
     } else if (struct_kind(kind)) {
         if (clang_Cursor_isNull(data.current_struct)) {
             print_headers(data);
