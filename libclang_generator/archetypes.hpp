@@ -1,3 +1,6 @@
+#ifndef INCLUDE_GUARD
+#define INCLUDE_GUARD
+
 
 namespace some_ns {
 
@@ -51,3 +54,5 @@ namespace some_ns {
     bool operator< (any_bar_template<T> lhs, any_bar_template<T> rhs);
 
 }
+
+#endif

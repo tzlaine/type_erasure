@@ -7,8 +7,10 @@
 
 
 namespace {
+
     const unsigned int indent_spaces = 4;
     const std::string indentation(indent_spaces, ' ');
+
 }
 
 CXCursor tu_cursor;
@@ -21,6 +23,7 @@ struct client_data
     // function signature, forwarding call arguments, optional return
     // keyword, and function name
     std::vector<std::array<std::string, 4>> member_functions;
+    bool printed_headers;
 };
 
 std::pair<CXToken*, unsigned int>
@@ -68,13 +71,13 @@ bool struct_kind (CXCursorKind kind)
     return false;
 }
 
-std::string indent (const client_data& data)
+std::string indent (const client_data & data)
 {
     std::size_t size = data.current_namespaces.size();
     return std::string(size * indent_spaces, ' ');
 }
 
-void print_lines (const client_data& data,
+void print_lines (const client_data & data,
                   const char** lines,
                   std::size_t num_lines)
 {
@@ -86,7 +89,22 @@ void print_lines (const client_data& data,
     }
 }
 
-void open_struct (const client_data& data, CXCursor struct_cursor)
+void print_headers (client_data & data)
+{
+    if (data.printed_headers)
+        return;
+
+    std::cout << "#include <algorithm>\n"
+              << "#include <functional>\n"
+              << "#include <memory>\n"
+              << "#include <type_traits>\n"
+              << "#include <utility>\n"
+              << "\n";
+
+    data.printed_headers = true;
+}
+
+void open_struct (const client_data & data, CXCursor struct_cursor)
 {
     std::pair<CXToken*, unsigned int> tokens =
         get_tokens(data.tu, struct_cursor);
@@ -153,7 +171,7 @@ void open_struct (const client_data& data, CXCursor struct_cursor)
                 sizeof(public_interface) / sizeof(const char*));
 }
 
-void close_struct (const client_data& data)
+void close_struct (const client_data & data)
 {
     std::cout << "\n"
               << indent(data) << "private:\n";
@@ -253,7 +271,7 @@ void close_struct (const client_data& data)
               << indent(data) << "};\n";
 }
 
-void print_member_function (const client_data& data, CXCursor cursor)
+void print_member_function (const client_data & data, CXCursor cursor)
 {
     std::cout << "\n"
               << std::string(indent_spaces, ' ') << indent(data)
@@ -266,7 +284,7 @@ void print_member_function (const client_data& data, CXCursor cursor)
               << "( " << data.member_functions.back()[1] << " ); }\n";
 }
 
-void open_namespace (const client_data& data, CXCursor namespace_)
+void open_namespace (const client_data & data, CXCursor namespace_)
 {
     std::cout
         << "\n"
@@ -276,30 +294,13 @@ void open_namespace (const client_data& data, CXCursor namespace_)
         << " {";
 }
 
-void close_namespace (const client_data& data)
+void close_namespace (const client_data & data)
 { std::cout << "\n" << indent(data) << "}\n"; }
-
-void dump_cursor (const char* name, CXCursor cursor)
-{
-    CXCursorKind kind = clang_getCursorKind(cursor);
-    CXString kind_spelling = clang_getCursorKindSpelling(kind);
-    CXString cursor_spelling = clang_getCursorSpelling(cursor);
-    std::cout << name << " "
-              << clang_getCString(kind_spelling) << " "
-              << clang_getCString(cursor_spelling) << " "
-              << "\n";
-}
 
 CXChildVisitResult
 visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
 {
-    client_data& data = *static_cast<client_data*>(data_);
-
-#if 0
-    std::cout << "\n";
-    dump_cursor("cursor", cursor);
-    dump_cursor("parent", parent);
-#endif
+    client_data & data = *static_cast<client_data*>(data_);
 
     CXCursor null_cursor = clang_getNullCursor();
 
@@ -310,9 +311,6 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
         enclosing_namespace =
             clang_getCursorSemanticParent(enclosing_namespace);
     }
-#if 0
-    dump_cursor("enclosing_namespace", enclosing_namespace);
-#endif
     if (!clang_equalCursors(enclosing_namespace, tu_cursor) &&
         clang_getCursorKind(enclosing_namespace) == CXCursor_Namespace) {
         while (!clang_equalCursors(enclosing_namespace,
@@ -328,9 +326,6 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
            !struct_kind(clang_getCursorKind(enclosing_struct))) {
         enclosing_struct = clang_getCursorSemanticParent(enclosing_struct);
     }
-#if 0
-    dump_cursor("enclosing_struct", enclosing_struct);
-#endif
     if (!clang_Cursor_isNull(data.current_struct) &&
         !clang_equalCursors(enclosing_struct, data.current_struct)) {
         data.current_struct = null_cursor;
@@ -340,11 +335,13 @@ visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
 
     CXCursorKind kind = clang_getCursorKind(cursor);
     if (kind == CXCursor_Namespace) {
+        print_headers(data);
         open_namespace(data, cursor);
         data.current_namespaces.push_back(cursor);
         return CXChildVisit_Recurse;
     } else if (struct_kind(kind)) {
         if (clang_Cursor_isNull(data.current_struct)) {
+            print_headers(data);
             data.current_struct = cursor;
             open_struct(data, cursor);
             return CXChildVisit_Recurse;
@@ -410,10 +407,10 @@ int main (int argc, char* argv[])
         argc,
         0,
         0,
-        CXTranslationUnit_None
+        CXTranslationUnit_DetailedPreprocessingRecord
     );
 
-    client_data data = {tu, {}, clang_getNullCursor()};
+    client_data data = {tu, {}, clang_getNullCursor(), {}, false};
 
     tu_cursor = clang_getTranslationUnitCursor(tu);
     clang_visitChildren(tu_cursor, visitor, &data);
