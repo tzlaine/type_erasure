@@ -12,16 +12,18 @@ struct client_data
     bool in_struct;
 };
 
-CXChildVisitResult visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
+CXChildVisitResult
+visitor (CXCursor cursor, CXCursor parent, CXClientData data_)
 {
     client_data& data = *static_cast<client_data*>(data_);
 
     CXCursorKind kind = clang_getCursorKind(cursor);
 
-    std::cout
-        << clang_getCString(clang_getCursorKindSpelling(clang_getCursorKind(cursor))) << " "
-        << clang_getCString(clang_getCursorSpelling(cursor)) << " "
-        << "\n";
+    CXString kind_spelling = clang_getCursorKindSpelling(kind);
+    CXString cursor_spelling = clang_getCursorSpelling(cursor);
+    std::cout << clang_getCString(kind_spelling) << " "
+              << clang_getCString(cursor_spelling) << " "
+              << "\n";
 
     CXSourceRange range = clang_getCursorExtent(cursor);
     CXSourceLocation start = clang_getRangeStart(range);
@@ -34,7 +36,8 @@ CXChildVisitResult visitor (CXCursor cursor, CXCursor parent, CXClientData data_
     for (unsigned int i = 0; i < num_tokens; ++i) {
         if (i)
             std::cout << " ";
-        std::cout << clang_getCString(clang_getTokenSpelling(data.tu, tokens[i]));
+        std::cout
+            << clang_getCString(clang_getTokenSpelling(data.tu, tokens[i]));
     }
     std::cout << "\n";
     clang_disposeTokens(data.tu, tokens, num_tokens);
@@ -45,8 +48,15 @@ CXChildVisitResult visitor (CXCursor cursor, CXCursor parent, CXClientData data_
 int main (int argc, char *argv[])
 {
     CXIndex index = clang_createIndex(0, 1);
-    CXTranslationUnit tu =
-        clang_parseTranslationUnit(index, 0, argv, argc, 0, 0, CXTranslationUnit_None);
+    CXTranslationUnit tu = clang_parseTranslationUnit(
+        index,
+        0,
+        argv,
+        argc,
+        0,
+        0,
+        CXTranslationUnit_None
+    );
 
     client_data data = {tu, {}, false};
 
