@@ -135,16 +135,30 @@ void open_struct (const client_data & data, CXCursor struct_cursor)
 
     free_tokens(data.tu, tokens);
 
+    const std::string struct_name =
+        clang_getCString(clang_getCursorSpelling(data.current_struct));
+
+    const std::string ctor_0 =
+        struct_name + " () = default;";
+    const std::string ctor_1 =
+        struct_name + " (T_T__ value) :";
+    const std::string ctor_2 =
+        struct_name + " (any_printable && rhs) noexcept = default;";
+    const std::string ctor_3 =
+        struct_name + " & operator= (T_T__ value)";
+    const std::string ctor_4 =
+        struct_name + " & operator= (any_printable && rhs) noexcept = default;";
+
     std::cout << "\n"
               << indent(data) << "{\n"
               << indent(data) << "public:\n";
 
     const char* public_interface[] = {
         0,
-        "any_printable () = default;",
+        ctor_0.c_str(),
         0,
         "template <typename T_T__>",
-        "any_printable (T_T__ value) :",
+        ctor_1.c_str(),
         "    handle_ (",
         "        std::make_shared<",
         "            handle<typename std::remove_reference<T_T__>::type>",
@@ -152,10 +166,10 @@ void open_struct (const client_data & data, CXCursor struct_cursor)
         "    )",
         "{}",
         0,
-        "any_printable (any_printable && rhs) noexcept = default;",
+        ctor_2.c_str(),
         0,
         "template <typename T_T__>",
-        "any_printable & operator= (T_T__ value)",
+        ctor_3.c_str(),
         "{",
         "    if (handle_.unique())",
         "        *handle_ = std::forward<T_T__>(value);",
@@ -164,7 +178,7 @@ void open_struct (const client_data & data, CXCursor struct_cursor)
         "    return *this;",
         "}",
         0,
-        "any_printable & operator= (any_printable && rhs) noexcept = default;"
+        ctor_4.c_str()
     };
 
     print_lines(data,
