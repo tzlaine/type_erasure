@@ -14,3 +14,7 @@ link_directories(${clang_lib_dir})
 
 add_executable(libclang_generator libclang_generator.cpp)
 target_link_libraries(libclang_generator PRIVATE clang)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/headers.hpp ${CMAKE_BINARY_DIR})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/form.hpp ${CMAKE_BINARY_DIR})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_archetypes.hpp ${CMAKE_BINARY_DIR})
