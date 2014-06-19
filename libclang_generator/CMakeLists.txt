@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
+message("-- Configuring libclang_generator")
+
 set(CLANG_ROOT
     /usr/local CACHE PATH
     "The root of the Clang installation paths; must contain /lib and /include subdirectories")
