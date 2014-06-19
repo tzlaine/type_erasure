@@ -20,6 +20,7 @@ struct client_data
     CXTranslationUnit tu;
     std::vector<CXCursor> current_namespaces;
     CXCursor current_struct;
+    std::string current_struct_prefix;
     // function signature, forwarding call arguments, optional return
     // keyword, and function name
     std::vector<std::array<std::string, 4>> member_functions;
@@ -129,12 +130,12 @@ void print_headers (client_data & data)
     data.printed_headers = true;
 }
 
-void open_struct (const client_data & data, CXCursor struct_cursor)
+std::string struct_prefix (const client_data & data, CXCursor struct_cursor)
 {
+    std::string retval;
+
     std::pair<CXToken*, unsigned int> tokens =
         get_tokens(data.tu, struct_cursor);
-
-    std::cout << "\n" << indent(data);
 
     const std::string open_brace = "{";
     const std::string struct_ = "struct";
@@ -149,178 +150,193 @@ void open_struct (const client_data & data, CXCursor struct_cursor)
             break;
 
         if (c_str == struct_ || c_str == class_) {
-            std::cout << "\n" << indent(data);
+            retval += "\n";
+            retval += indent(data);
         } else if (i) {
-            std::cout << " ";
+            retval += " ";
         }
 
-        std::cout << c_str;
+        retval += c_str;
     }
 
     free_tokens(data.tu, tokens);
 
-    const std::string struct_name =
-        clang_getCString(clang_getCursorSpelling(data.current_struct));
+    return retval;
+}
 
-    const std::string ctor_0 =
-        struct_name + " () = default;";
-    const std::string ctor_1 =
-        struct_name + " (T_T__ value) :";
-    const std::string ctor_2 =
-        struct_name + " (any_printable && rhs) noexcept = default;";
-    const std::string ctor_3 =
-        struct_name + " & operator= (T_T__ value)";
-    const std::string ctor_4 =
-        struct_name + " & operator= (any_printable && rhs) noexcept = default;";
+std::array<std::string, 4>
+member_params (const client_data & data, CXCursor cursor)
+{
+    std::pair<CXToken*, unsigned int> tokens = get_tokens(data.tu, cursor);
 
-    std::cout << "\n"
-              << indent(data) << "{\n"
-              << indent(data) << "public:\n";
+    const std::string open_brace = "{";
+    const std::string semicolon = ";";
 
-    const char* public_interface[] = {
-        0,
-        ctor_0.c_str(),
-        0,
-        "template <typename T_T__>",
-        ctor_1.c_str(),
-        "    handle_ (",
-        "        std::make_shared<",
-        "            handle<typename std::remove_reference<T_T__>::type>",
-        "        >(std::forward<T_T__>(value))",
-        "    )",
-        "{}",
-        0,
-        ctor_2.c_str(),
-        0,
-        "template <typename T_T__>",
-        ctor_3.c_str(),
-        "{",
-        "    if (handle_.unique())",
-        "        *handle_ = std::forward<T_T__>(value);",
-        "    else if (!handle_)",
-        "        handle_ = std::make_shared<T_T__>(std::forward<T_T__>(value));",
-        "    return *this;",
-        "}",
-        0,
-        ctor_4.c_str()
-    };
+    std::string str;
 
-    print_lines(data,
-                public_interface,
-                sizeof(public_interface) / sizeof(const char*));
+    for (unsigned int i = 0; i < tokens.second; ++i) {
+        CXString spelling =
+            clang_getTokenSpelling(data.tu, tokens.first[i]);
+
+        const char* c_str = clang_getCString(spelling);
+
+        if (c_str == open_brace || c_str == semicolon)
+            break;
+
+        if (i)
+            str += " ";
+
+        str += c_str;
+    }
+
+    std::string args;
+
+    const int num_args = clang_Cursor_getNumArguments(cursor);
+    for (int i = 0; i < num_args; ++i) {
+        if (i)
+            args += ", ";
+        CXCursor arg_cursor = clang_Cursor_getArgument(cursor, i);
+        args += clang_getCString(clang_getCursorSpelling(arg_cursor));
+    }
+
+    const char* return_str =
+        clang_getCursorResultType(cursor).kind == CXType_Void ?
+        "" :
+        "return ";
+
+    const char* function_name =
+        clang_getCString(clang_getCursorSpelling(cursor));
+
+    free_tokens(data.tu, tokens);
+
+    return {str, args, return_str, function_name};
+}
+
+std::vector<std::string> line_break (const std::string & form)
+{
+    std::vector<std::string> retval;
+
+    std::string::size_type prev_pos = 0;
+    while (true) {
+        std::string::size_type pos = form.find('\n', prev_pos);
+        if (pos == std::string::npos)
+            break;
+        retval.push_back(form.substr(prev_pos, pos - prev_pos));
+        prev_pos = pos + 1;
+    }
+
+    retval.push_back(form.substr(prev_pos));
+
+    return retval;
+}
+
+void indent (std::vector<std::string> & lines, const client_data & data)
+{
+    for (std::string & line : lines) {
+        line = indent(data) + line;
+    }
+}
+
+void replace (std::string & line,
+              const std::string & tag,
+              const std::string & value)
+{
+    std::string copy;
+    while (true) {
+        std::string::size_type pos = line.find(tag);
+        if (pos == std::string::npos)
+            break;
+        copy = line.substr(0, pos);
+        copy += value;
+        copy += line.substr(pos + tag.size());
+        copy.swap(line);
+    }
+}
+
+void replace (std::vector<std::string> & lines,
+              const std::string & tag,
+              const std::string & value)
+{
+    for (std::string & line : lines) {
+        replace(line, tag, value);
+    }
+}
+
+std::array<std::pair<int, std::size_t>, 3>
+find_expansion_lines (const std::vector<std::string> & lines)
+{
+    std::array<std::pair<int, std::size_t>, 3> retval = {};
+    std::size_t i = 0;
+    for (const std::string & line : lines) {
+        std::string::size_type pos;
+        if ((pos = line.find("%nonvirtual_members%")) !=
+            std::string::npos) {
+            retval[0] = std::pair<int, std::size_t>(i, pos);
+        } else if ((pos = line.find("%pure_virtual_members%")) !=
+                   std::string::npos) {
+            retval[1] = std::pair<int, std::size_t>(i, pos);
+        } else if ((pos = line.find("%virtual_members%")) !=
+                   std::string::npos) {
+            retval[2] = std::pair<int, std::size_t>(i, pos);
+        }
+        ++i;
+    }
+    return retval;
 }
 
 void close_struct (const client_data & data)
 {
-    std::cout << "\n"
-              << indent(data) << "private:\n";
+    std::vector<std::string> lines = line_break(data.form);
 
-    const char* handle_base_preamble[] = {
-        0,
-        "struct handle_base",
-        "{",
-        "    virtual ~handle_base () {}",
-        "    virtual std::shared_ptr<handle_base> close () const = 0;",
-        0
-    };
+    std::array<std::pair<int, std::size_t>, 3> expansion_lines =
+        find_expansion_lines(lines);
 
-    print_lines(data,
-                handle_base_preamble,
-                sizeof(handle_base_preamble) / sizeof(const char*));
+    indent(lines, data);
 
-    for (auto & member : data.member_functions) {
-        std::cout << indent(data) << indentation << indentation
-                  << "virtual " << member[0] << " = 0;\n";
+    replace(lines, "%struct_prefix%", data.current_struct_prefix);
+
+    replace(lines,
+            "%struct_name%",
+            clang_getCString(clang_getCursorSpelling(data.current_struct)));
+
+    std::string nonvirtual_members;
+    std::string pure_virtual_members;
+    std::string virtual_members;
+
+    for (const auto & function : data.member_functions) {
+        std::string spacing;
+
+        spacing = std::string(expansion_lines[0].second, ' ') + indent(data);
+        nonvirtual_members +=
+            spacing + function[0] + "\n" +
+            spacing + "{ assert(handle_); " + function[2] +
+            "handle_->" + function[3] +
+            "(" + function[1] + " ); }\n";
+
+        spacing = std::string(expansion_lines[1].second, ' ') + indent(data);
+        pure_virtual_members +=
+            spacing + "virtual " + function[0] + " = 0;\n";
+
+        spacing = std::string(expansion_lines[2].second, ' ') + indent(data);
+        virtual_members +=
+            spacing + function[0] + "\n" +
+            spacing + "{ " + function[2] +
+            "value_." + function[3] +
+            "(" + function[1] + " ); }\n";
     }
 
-    const char* handle_preamble[] = {
-        0,
-        "};",
-        0,
-        "template <typename T_T__>",
-        "struct handle :",
-        "    handle_base",
-        "{",
-        "    template <typename T_T__>",
-        "    handle (T_T__ value,",
-        "            typename std::enable_if<",
-        "                std::is_reference<U_U__>::value",
-        "            >::type* = 0) :",
-        "        value_ (value)",
-        "    {}",
-        0,
-        "    template <typename U_U__ = T_T__>",
-        "    handle (T_T__ value,",
-        "            typename std::enable_if<",
-        "                !std::is_reference<U_U__>::value,",
-        "                int",
-        "            >::type* = 0) noexcept :",
-        "        value_ (std::move(value))",
-        "    {}",
-        0,
-        "    virtual std::shared_ptr<handle_base> clone () const",
-        "    { return std::make_shared<handle>(value_); }"
-    };
+    nonvirtual_members.resize(nonvirtual_members.size() - 1);
+    pure_virtual_members.resize(pure_virtual_members.size() - 1);
+    virtual_members.resize(virtual_members.size() - 1);
 
-    print_lines(data,
-                handle_preamble,
-                sizeof(handle_preamble) / sizeof(const char*));
+    lines[expansion_lines[0].first] = nonvirtual_members;
+    lines[expansion_lines[1].first] = pure_virtual_members;
+    lines[expansion_lines[2].first] = virtual_members;
 
-    for (auto & member : data.member_functions) {
-        std::cout << "\n"
-                  << indent(data) << indentation << indentation
-                  << "virtual " << member[0] << "\n"
-                  << indent(data) << indentation << indentation
-                  << "{ " << member[2] << "value_." << member[3]
-                  << "( " << member[1] << " ); }\n";
+    std::cout << "\n";
+    for (std::string & line : lines) {
+        std::cout << line << "\n";
     }
-
-    const char* handle_postamble[] = {
-        0,
-        "    T_T__ value_;",
-        "};",
-        0,
-        "template <typename T_T__>",
-        "struct handle<std::reference_wrapper<T_T__>> :",
-        "    handle<T_T__ &>",
-        "{",
-        "    handle (std::reference_wrapper<T_T__> ref) :",
-        "        handle<T_T__ &> (ref.get())",
-        "    {}",
-        "};",
-        0,
-        "const handle_base & read () const",
-        "{ return *handle_; }",
-        0,
-        "handle_base & write ()",
-        "{",
-        "    if (!handle_.unique())",
-        "        handle_ = handle_->clone();",
-        "    return *handle_;",
-        "}",
-        0,
-        "std::shared_ptr<handle_base> handle_;"
-    };
-
-    print_lines(data,
-                handle_postamble,
-                sizeof(handle_postamble) / sizeof(const char*));
-
-    std::cout << "\n"
-              << indent(data) << "};\n";
-}
-
-void print_member_function (const client_data & data, CXCursor cursor)
-{
-    std::cout << "\n"
-              << std::string(indent_spaces, ' ') << indent(data)
-              << data.member_functions.back()[0];
-
-    std::cout << "\n" << std::string(indent_spaces, ' ') << indent(data)
-              << "{ assert(handle_); " << data.member_functions.back()[2]
-              << "handle_->"
-              << clang_getCString(clang_getCursorSpelling(cursor))
-              << "( " << data.member_functions.back()[1] << " ); }\n";
 }
 
 void open_namespace (const client_data & data, CXCursor namespace_)
@@ -392,8 +408,8 @@ visit (CXCursor cursor, CXCursor parent, CXClientData data_)
     }
     if (!clang_Cursor_isNull(data.current_struct) &&
         !clang_equalCursors(enclosing_struct, data.current_struct)) {
-        data.current_struct = null_cursor;
         close_struct(data);
+        data.current_struct = null_cursor;
         data.member_functions.clear();
     }
 
@@ -414,55 +430,11 @@ visit (CXCursor cursor, CXCursor parent, CXClientData data_)
         if (clang_Cursor_isNull(data.current_struct)) {
             print_headers(data);
             data.current_struct = cursor;
-            open_struct(data, cursor);
+            data.current_struct_prefix = struct_prefix(data, cursor);
             return CXChildVisit_Recurse;
         }
     } else if (kind == CXCursor_CXXMethod) {
-        std::pair<CXToken*, unsigned int> tokens = get_tokens(data.tu, cursor);
-
-        const std::string open_brace = "{";
-        const std::string semicolon = ";";
-
-        std::string str;
-
-        for (unsigned int i = 0; i < tokens.second; ++i) {
-            CXString spelling =
-                clang_getTokenSpelling(data.tu, tokens.first[i]);
-
-            const char* c_str = clang_getCString(spelling);
-
-            if (c_str == open_brace || c_str == semicolon)
-                break;
-
-            if (i)
-                str += " ";
-
-            str += c_str;
-        }
-
-        std::string args;
-
-        const int num_args = clang_Cursor_getNumArguments(cursor);
-        for (int i = 0; i < num_args; ++i) {
-            if (i)
-                args += ", ";
-            CXCursor arg_cursor = clang_Cursor_getArgument(cursor, i);
-            args += clang_getCString(clang_getCursorSpelling(arg_cursor));
-        }
-
-        const char* return_str =
-            clang_getCursorResultType(cursor).kind == CXType_Void ?
-            "" :
-            "return ";
-
-        const char* function_name =
-            clang_getCString(clang_getCursorSpelling(cursor));
-
-        free_tokens(data.tu, tokens);
-
-        data.member_functions.push_back({str, args, return_str, function_name});
-
-        print_member_function(data, cursor);
+        data.member_functions.push_back(member_params(data, cursor));
     }
 
     return CXChildVisit_Continue;
@@ -543,6 +515,7 @@ int main (int argc, char* argv[])
         tu,
         {},
         clang_getNullCursor(),
+        "",
         {},
         false,
         filename,

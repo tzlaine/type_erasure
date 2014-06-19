@@ -1,4 +1,4 @@
-%struct_name%
+%struct_prefix%
 {
 public:
     %struct_name% () = default;
