@@ -26,6 +26,7 @@ struct client_data
     bool printed_headers;
     const char* filename;
     bool include_guarded;
+    std::string form;
 };
 
 std::string file_slurp (const std::string & filename)
@@ -34,7 +35,8 @@ std::string file_slurp (const std::string & filename)
 
     std::ifstream ifs(filename, std::ifstream::in | std::ifstream::binary);
     ifs.seekg(0, std::ifstream::end);
-    retval.resize(ifs.tellg());
+    if (0 < ifs.tellg())
+        retval.resize(ifs.tellg());
     ifs.seekg(0);
 
     const std::streamsize read_size = 64 * 1024; // 64k per read
@@ -478,12 +480,39 @@ CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange r
 
 int main (int argc, char* argv[])
 {
+    std::string form_filename = "form.hpp";
+    std::vector<char*> argv_copy(argc);
+    std::vector<char*>::iterator argv_it = argv_copy.begin();
+    const std::string form_token = "--form";
+    for (int i = 0; i < argc; ++i) {
+        if (argv[i] == form_token) {
+            ++i;
+            if (argc <= i) {
+                std::cerr << argv[0]
+                          << ": Forms must be specified as --form [filename].\n";
+                return 1;
+            }
+            form_filename = argv[i];
+            argv_copy.resize(argv_copy.size() - 2);
+        } else {
+            *argv_it++ = argv[i];
+        }
+    }
+
+    const std::string form = file_slurp(form_filename);
+
+    if (form.empty()) {
+        std::cerr << argv[0]
+                  << ": Unable to read form-file '" << form_filename << "'.\n";
+        return 1;
+    }
+
     CXIndex index = clang_createIndex(0, 1);
     CXTranslationUnit tu = clang_parseTranslationUnit(
         index,
         0,
-        argv,
-        argc,
+        &argv_copy[0],
+        argv_copy.size(),
         0,
         0,
         CXTranslationUnit_DetailedPreprocessingRecord
@@ -496,8 +525,16 @@ int main (int argc, char* argv[])
 
     const bool include_guarded = clang_isFileMultipleIncludeGuarded(tu, file);
 
-    client_data data =
-        {tu, {}, clang_getNullCursor(), {}, false, filename, include_guarded};
+    client_data data = {
+        tu,
+        {},
+        clang_getNullCursor(),
+        {},
+        false,
+        filename,
+        include_guarded,
+        form
+    };
 
     tu_cursor = clang_getTranslationUnitCursor(tu);
 
