@@ -71,17 +71,27 @@ void
 free_tokens (CXTranslationUnit tu, std::pair<CXToken*, unsigned int> tokens)
 { clang_disposeTokens(tu, tokens.first, tokens.second); }
 
-void print_tokens (CXTranslationUnit tu, CXCursor cursor, bool elide_final_token)
+void print_tokens (CXTranslationUnit tu,
+                   CXCursor cursor,
+                   bool tokens_from_include_directive)
 {
     std::pair<CXToken*, unsigned int> tokens = get_tokens(tu, cursor);
 
+    const std::string open_angle = "<";
+    const std::string close_angle = ">";
+
     const unsigned int num_tokens =
-        tokens.second && elide_final_token ? tokens.second - 1 : tokens.second;
+        tokens.second && tokens_from_include_directive ?
+        tokens.second - 1 :
+        tokens.second;
+    const char* prev_token = 0;
     for (unsigned int i = 0; i < num_tokens; ++i) {
-        if (i)
-            std::cout << " ";
         CXString spelling = clang_getTokenSpelling(tu, tokens.first[i]);
-        std::cout << clang_getCString(spelling);
+        const char* token = clang_getCString(spelling);
+        if (i && prev_token != open_angle && token != close_angle)
+            std::cout << " ";
+        std::cout << token;
+        prev_token = token;
     }
     std::cout << "\n";
 
