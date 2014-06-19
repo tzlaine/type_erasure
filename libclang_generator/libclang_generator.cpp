@@ -27,6 +27,7 @@ struct client_data
     const char* filename;
     bool include_guarded;
     std::string form;
+    std::string headers;
 };
 
 std::string file_slurp (const std::string & filename)
@@ -481,18 +482,29 @@ CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange r
 int main (int argc, char* argv[])
 {
     std::string form_filename = "form.hpp";
+    std::string headers_filename = "headers.hpp";
     std::vector<char*> argv_copy(argc);
     std::vector<char*>::iterator argv_it = argv_copy.begin();
     const std::string form_token = "--form";
+    const std::string headers_token = "--headers";
     for (int i = 0; i < argc; ++i) {
         if (argv[i] == form_token) {
             ++i;
             if (argc <= i) {
                 std::cerr << argv[0]
-                          << ": Forms must be specified as --form [filename].\n";
+                          << ": Form-file must be specified as --form [filename].\n";
                 return 1;
             }
             form_filename = argv[i];
+            argv_copy.resize(argv_copy.size() - 2);
+        } else if (argv[i] == headers_token) {
+            ++i;
+            if (argc <= i) {
+                std::cerr << argv[0]
+                          << ": Headers-file must be specified as --headers [filename].\n";
+                return 1;
+            }
+            headers_filename = argv[i];
             argv_copy.resize(argv_copy.size() - 2);
         } else {
             *argv_it++ = argv[i];
@@ -500,10 +512,17 @@ int main (int argc, char* argv[])
     }
 
     const std::string form = file_slurp(form_filename);
+    const std::string headers = file_slurp(headers_filename);
 
     if (form.empty()) {
         std::cerr << argv[0]
                   << ": Unable to read form-file '" << form_filename << "'.\n";
+        return 1;
+    }
+
+    if (headers.empty()) {
+        std::cerr << argv[0]
+                  << ": Unable to read headers-file '" << headers_filename << "'.\n";
         return 1;
     }
 
@@ -533,7 +552,8 @@ int main (int argc, char* argv[])
         false,
         filename,
         include_guarded,
-        form
+        form,
+        headers
     };
 
     tu_cursor = clang_getTranslationUnitCursor(tu);
