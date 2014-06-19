@@ -124,12 +124,7 @@ void print_headers (client_data & data)
     if (data.printed_headers)
         return;
 
-    std::cout << "#include <algorithm>\n"
-              << "#include <functional>\n"
-              << "#include <memory>\n"
-              << "#include <type_traits>\n"
-              << "#include <utility>\n"
-              << "\n";
+    std::cout << data.headers << "\n";
 
     data.printed_headers = true;
 }
