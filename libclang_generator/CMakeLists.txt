@@ -12,9 +12,31 @@ set(clang_lib_dir ${CLANG_ROOT}/lib)
 include_directories(${clang_include_dir})
 link_directories(${clang_lib_dir})
 
+if (UNIX)
+    set(install_bin_dir bin)
+    set(install_lib_dir lib)
+    set(install_data_dir share/libclang_generator)
+    add_definitions(-DRELATIVE_DATA_DIR=\"../${install_data_dir}/\")
+else ()
+    set(install_bin_dir .)
+    set(install_lib_dir .)
+    set(install_data_dir .)
+    add_definitions(-DRELATIVE_DATA_DIR=\"\")
+endif ()
+
 add_executable(libclang_generator libclang_generator.cpp)
 target_link_libraries(libclang_generator PRIVATE clang)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/headers.hpp ${CMAKE_BINARY_DIR})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/form.hpp ${CMAKE_BINARY_DIR})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_archetypes.hpp ${CMAKE_BINARY_DIR})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/headers.hpp
+               ${CMAKE_BINARY_DIR}/${install_data_dir}/headers.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/form.hpp
+               ${CMAKE_BINARY_DIR}/${install_data_dir}/form.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_archetypes.hpp
+               ${CMAKE_BINARY_DIR})
+
+install(TARGETS libclang_generator
+        RUNTIME DESTINATION ${install_bin_dir})
+install(FILES ${clang_lib_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}clang${CMAKE_SHARED_LIBRARY_SUFFIX}
+        DESTINATION ${install_lib_dir})
+install(FILES headers.hpp form.hpp
+        DESTINATION ${install_data_dir})

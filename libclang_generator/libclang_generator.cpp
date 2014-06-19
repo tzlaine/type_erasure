@@ -458,8 +458,12 @@ CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange r
 
 int main (int argc, char* argv[])
 {
-    std::string form_filename = "form.hpp";
-    std::string headers_filename = "headers.hpp";
+    std::string binary_path = argv[0];
+    binary_path.resize(binary_path.find_last_of("/\\") + 1);
+
+    std::string form_filename = binary_path + RELATIVE_DATA_DIR "form.hpp";
+    std::string headers_filename = binary_path + RELATIVE_DATA_DIR "headers.hpp";
+
     std::vector<char*> argv_copy(argc);
     std::vector<char*>::iterator argv_it = argv_copy.begin();
     const std::string form_token = "--form";
