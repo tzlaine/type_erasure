@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
 
-set(clang_root
+set(CLANG_ROOT
     /usr/local CACHE PATH
     "The root of the Clang installation paths; must contain /lib and /include subdirectories")
 
-set(clang_include_dir ${clang_root}/include)
-set(clang_lib_dir ${clang_root}/lib)
+set(clang_include_dir ${CLANG_ROOT}/include)
+set(clang_lib_dir ${CLANG_ROOT}/lib)
 
 include_directories(${clang_include_dir})
 link_directories(${clang_lib_dir})
