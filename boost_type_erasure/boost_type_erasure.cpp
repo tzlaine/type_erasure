@@ -1,0 +1,161 @@
+#include <boost/type_erasure/any.hpp>
+#include <boost/type_erasure/member.hpp>
+
+#include <iostream>
+
+
+std::size_t& allocations ()
+{
+    static std::size_t allocations_ = 0;
+    return allocations_;
+}
+
+void reset_allocations ()
+{ allocations() = 0; }
+
+
+namespace bte = boost::type_erasure;
+namespace mpl = boost::mpl;
+
+BOOST_TYPE_ERASURE_MEMBER((has_print), print, 1)
+
+using any_printable = bte::any<
+    mpl::vector<
+        bte::constructible<bte::_self()>,
+        bte::copy_constructible<bte::_self>,
+        bte::assignable<bte::_self>,
+        bte::destructible<bte::_self>,
+        has_print<void ()>
+    >
+>;
+
+using any_printable_param = bte::any<
+    has_print<void ()>,
+    bte::_self&
+>;
+
+void print_printable (any_printable_param printable)
+{
+    printable.print();
+}
+
+
+struct hi_printable
+{
+    void print () const
+    { std::cout << "Hello, world!\n"; }
+};
+
+struct bye_printable
+{
+    void print () const
+    { std::cout << "Bye, now!\n"; }
+};
+
+struct large_printable :
+    std::vector<std::string>
+{
+    large_printable () :
+        std::vector<std::string> (1000, std::string(1000, ' '))
+    { ++allocations(); }
+
+    large_printable (const large_printable & rhs) :
+        std::vector<std::string> (rhs)
+    { ++allocations(); }
+
+    large_printable & operator= (const large_printable & rhs)
+    {
+        ++allocations();
+        static_cast<std::vector<std::string> &>(*this) = rhs;
+        return *this;
+    }
+
+    large_printable (large_printable && rhs) = default;
+    large_printable & operator= (large_printable && rhs) = default;
+
+    void print () const
+    { std::cout << "I'm expensive to copy.\n"; }
+};
+
+
+#define BOOST_TEST_MODULE TypeErasure
+
+#include <boost/test/included/unit_test.hpp>
+
+BOOST_AUTO_TEST_CASE(hand_rolled)
+{
+#define ECHO(expr)                                                      \
+    do {                                                                \
+        std::cout << #expr << ";\nap.print() = ";                       \
+        expr;                                                           \
+        ap.print();                                                     \
+        std::cout << "allocations: " << allocations() << "\n\n";        \
+        reset_allocations();                                            \
+    } while (false)
+
+    ECHO(hi_printable hi; any_printable ap(hi));
+    ECHO(large_printable large; any_printable ap(large));
+    ECHO(bye_printable bye; any_printable ap(bye));
+
+    ECHO(hi_printable hi; any_printable ap = hi);
+    ECHO(large_printable large; any_printable ap = large);
+    ECHO(bye_printable bye; any_printable ap = bye);
+
+    ECHO(hi_printable hi; any_printable tmp = hi; any_printable ap = tmp);
+    ECHO(large_printable large; any_printable tmp = large; any_printable ap = tmp);
+    ECHO(bye_printable bye; any_printable tmp = bye; any_printable ap = tmp);
+
+#if 0 // Does not compile!
+    ECHO(hi_printable hi; any_printable ap; ap = hi);
+    ECHO(large_printable large; any_printable ap; ap = large);
+    ECHO(bye_printable bye; any_printable ap; ap = bye);
+#endif
+
+    ECHO(const hi_printable hi{}; any_printable ap(hi));
+    ECHO(const large_printable large{}; any_printable ap(large));
+    ECHO(const bye_printable bye{}; any_printable ap(bye));
+
+    ECHO(const hi_printable hi{}; any_printable ap = hi);
+    ECHO(const large_printable large{}; any_printable ap = large);
+    ECHO(const bye_printable bye{}; any_printable ap = bye);
+
+    ECHO(const hi_printable hi{}; any_printable tmp = hi; any_printable ap = tmp);
+    ECHO(const large_printable large{}; any_printable tmp = large; any_printable ap = tmp);
+    ECHO(const bye_printable bye{}; any_printable tmp = bye; any_printable ap = tmp);
+
+#if 0 // Does not compile!
+    ECHO(const hi_printable hi{}; any_printable ap; ap = hi);
+    ECHO(const large_printable large{}; any_printable ap; ap = large);
+    ECHO(const bye_printable bye{}; any_printable ap; ap = bye);
+#endif
+
+    ECHO(any_printable ap(hi_printable{}));
+    ECHO(any_printable ap(large_printable{}));
+    ECHO(any_printable ap(bye_printable{}));
+
+    ECHO(any_printable ap = hi_printable{});
+    ECHO(any_printable ap = large_printable{});
+    ECHO(any_printable ap = bye_printable{});
+
+#undef ECHO
+
+#define ECHO(expr)                                                      \
+    do {                                                                \
+        std::cout << #expr << ";\nap.print() = ";                       \
+        expr;                                                           \
+        std::cout << "allocations: " << allocations() << "\n\n";        \
+        reset_allocations();                                            \
+    } while (false)
+
+    ECHO(hi_printable hi; print_printable(hi));
+    ECHO(large_printable hi; print_printable(hi));
+    ECHO(bye_printable hi; print_printable(hi));
+
+#undef ECHO
+}
+
+/* Limitations:
+   1 - Each non-specific portion of the API (default and copy ctors, etc.) must be specified in the boost::type_erasure::any<> template instantiation.
+   2 - Arbitrary types cannot be assigned to an any<>; the acceptable types must be explicitly listed.
+   3 - Compile-time errors will make your eyes bleed.
+*/
