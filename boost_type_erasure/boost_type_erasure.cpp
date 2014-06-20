@@ -38,6 +38,10 @@ void print_printable (any_printable_param printable)
 
 BOOST_AUTO_TEST_CASE(hand_rolled)
 {
+#if INSTRUMENT_COPIES
+    reset_allocations();
+#endif
+
 #define ECHO(expr)                                                      \
     do {                                                                \
         std::cout << #expr << ";\nap.print() = ";                       \
