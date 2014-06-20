@@ -1,6 +1,8 @@
 #ifndef HAND_ROLLED_INCLUDED__
 #define HAND_ROLLED_INCLUDED__
 
+#include <printable_types.hpp>
+
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -13,21 +15,6 @@
 // Variation 1: Accept std::reference_wrapper<>.
 #ifndef ACCEPT_REFERENCE_WRAPPER
 #define ACCEPT_REFERENCE_WRAPPER 1
-#endif
-
-#ifndef INSTRUMENT_COPIES
-#define INSTRUMENT_COPIES 1
-#endif
-
-#if INSTRUMENT_COPIES
-std::size_t& allocations ()
-{
-    static std::size_t allocations_ = 0;
-    return allocations_;
-}
-
-void reset_allocations ()
-{ allocations() = 0; }
 #endif
 
 class any_printable
@@ -144,44 +131,6 @@ private:
 #endif
 
     std::unique_ptr<handle_base> handle_;
-};
-
-
-struct hi_printable
-{
-    void print () const
-    { std::cout << "Hello, world!\n"; }
-};
-
-struct bye_printable
-{
-    void print () const
-    { std::cout << "Bye, now!\n"; }
-};
-
-struct large_printable :
-    std::vector<std::string>
-{
-    large_printable () :
-        std::vector<std::string> (1000, std::string(1000, ' '))
-    { ++allocations(); }
-
-    large_printable (const large_printable & rhs) :
-        std::vector<std::string> (rhs)
-    { ++allocations(); }
-
-    large_printable & operator= (const large_printable & rhs)
-    {
-        ++allocations();
-        static_cast<std::vector<std::string> &>(*this) = rhs;
-        return *this;
-    }
-
-    large_printable (large_printable && rhs) = default;
-    large_printable & operator= (large_printable && rhs) = default;
-
-    void print () const
-    { std::cout << "I'm expensive to copy.\n"; }
 };
 
 
