@@ -1,13 +1,10 @@
 #ifndef COPY_ON_WRITE_HPP_INCLUDED__
 #define COPY_ON_WRITE_HPP_INCLUDED__
 
+#include <cassert>
 #include <memory>
 #include <mutex>
 
-
-#if INSTRUMENT_COPIES
-std::size_t& allocations ();
-#endif
 
 template <typename T>
 struct copy_on_write
@@ -22,22 +19,14 @@ struct copy_on_write
 
     copy_on_write (T value) :
         impl_ (std::make_shared<T>(std::move(value)))
-    {
-#if INSTRUMENT_COPIES
-        ++allocations();
-#endif
-    }
+    {}
 
     copy_on_write& operator= (T value)
     {
         if (impl_.unique())
             *impl_ = std::move(value);
-        else if (!impl_) {
+        else if (!impl_)
             impl_ = std::make_shared<T>(std::move(value));
-#if INSTRUMENT_COPIES
-            ++allocations();
-#endif
-        }
     }
 
     const value_type & read () const
@@ -61,13 +50,8 @@ struct copy_on_write
     value_type & write ()
     {
         assert(impl_ && "Attempted to use a moved-from copy_on_write object.");
-
-        if (!impl_.unique()) {
+        if (!impl_.unique())
             impl_ = std::make_shared<T>(*impl_);
-#if INSTRUMENT_COPIES
-            ++allocations();
-#endif
-        }
         return *impl_;
     }
 

@@ -30,11 +30,7 @@ public:
                 std::forward<T>(value)
             )
         )
-    {
-#if INSTRUMENT_COPIES
-        ++allocations();
-#endif
-    }
+    {}
 
     any_printable (const any_printable & rhs) :
         handle_ (rhs.handle_->clone())
@@ -105,12 +101,7 @@ private:
 #endif
 
         virtual handle_base* clone () const
-        {
-#if INSTRUMENT_COPIES
-            ++allocations();
-#endif
-            return new handle(value_);
-        }
+        { return new handle(value_); }
 
         // Public interface
         virtual void print () const

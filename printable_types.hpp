@@ -8,14 +8,26 @@
 #endif
 
 #if INSTRUMENT_COPIES
-std::size_t& allocations ()
+inline std::size_t& allocations ()
 {
     static std::size_t allocations_ = 0;
     return allocations_;
 }
 
-void reset_allocations ()
+inline void reset_allocations ()
 { allocations() = 0; }
+
+inline void * operator new (std::size_t size)
+{
+    ++allocations();
+    return malloc(size);
+}
+
+inline void * operator new[] (std::size_t size)
+{
+    ++allocations();
+    return malloc(size);
+}
 #endif
 
 struct hi_printable
@@ -35,25 +47,14 @@ struct large_printable :
 {
     large_printable () :
         std::vector<std::string> (1000, std::string(1000, ' '))
-    {
-#if INSTRUMENT_COPIES
-        ++allocations();
-#endif
-    }
+    {}
 
     large_printable (const large_printable & rhs) :
         std::vector<std::string> (rhs)
-    {
-#if INSTRUMENT_COPIES
-        ++allocations();
-#endif
-    }
+    {}
 
     large_printable & operator= (const large_printable & rhs)
     {
-#if INSTRUMENT_COPIES
-        ++allocations();
-#endif
         static_cast<std::vector<std::string> &>(*this) = rhs;
         return *this;
     }

@@ -1,5 +1,4 @@
 #define ACCEPT_REFERENCE_WRAPPER 1
-#define INSTRUMENT_COPIES 1
 
 #include "hand_rolled.hpp"
 #include "hand_rolled_cow.hpp"

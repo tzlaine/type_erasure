@@ -23,11 +23,7 @@ public:
                 std::forward<T>(value)
             )
         )
-    {
-#if INSTRUMENT_COPIES
-        ++allocations();
-#endif
-    }
+    {}
 
     // Assignment
     template <typename T>
@@ -35,12 +31,8 @@ public:
     {
         if (handle_.unique())
             *handle_ = std::forward<T>(value);
-        else if (!handle_) {
+        else if (!handle_)
             handle_ = std::make_shared<T>(std::forward<T>(value));
-#if INSTRUMENT_COPIES
-            ++allocations();
-#endif
-        }
         return *this;
     }
 
@@ -97,12 +89,7 @@ private:
 #endif
 
         virtual std::shared_ptr<handle_base> clone () const
-        {
-#if INSTRUMENT_COPIES
-            ++allocations();
-#endif
-            return std::make_shared<handle>(value_);
-        }
+        { return std::make_shared<handle>(value_); }
 
         // Public interface
         virtual void print () const

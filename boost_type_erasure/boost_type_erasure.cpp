@@ -1,5 +1,7 @@
 #include <printable_types.hpp>
 
+#include <hand_rolled/copy_on_write.hpp>
+
 #include <boost/type_erasure/any.hpp>
 #include <boost/type_erasure/member.hpp>
 
@@ -23,13 +25,11 @@ using any_printable = bte::any<
 
 using any_printable_param = bte::any<
     has_print<void ()>,
-    bte::_self&
+    bte::_self &
 >;
 
 void print_printable (any_printable_param printable)
-{
-    printable.print();
-}
+{ printable.print(); }
 
 
 #define BOOST_TEST_MODULE TypeErasure
@@ -108,8 +108,43 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 #undef ECHO
 }
 
+BOOST_AUTO_TEST_CASE(boost_type_erasure_vector)
+{
+    std::vector<any_printable> several_printables = {
+        hi_printable{},
+        large_printable{}
+    };
+
+    for (auto & printable : several_printables) {
+        printable.print();
+    }
+
+    std::vector<any_printable> several_printables_copy = several_printables;
+
+    std::cout << "allocations: " << allocations() << "\n\n";
+    reset_allocations();
+}
+
+BOOST_AUTO_TEST_CASE(boost_type_erasure_vector_copy_on_write)
+{
+    std::vector<copy_on_write<any_printable>> several_printables = {
+        {hi_printable{}},
+        {large_printable{}}
+    };
+
+    for (auto & printable : several_printables) {
+        const_cast<any_printable &>(*printable).print();
+    }
+
+    std::vector<copy_on_write<any_printable>> several_printables_copy = several_printables;
+
+    std::cout << "allocations: " << allocations() << "\n\n";
+    reset_allocations();
+}
+
 /* Limitations:
    1 - Each non-specific portion of the API (default and copy ctors, etc.) must be specified in the boost::type_erasure::any<> template instantiation.
    2 - Arbitrary types cannot be assigned to an any<>; the acceptable types must be explicitly listed.
-   3 - Compile-time errors will make your eyes bleed.
+   3 - Adapting to const member functions is a bit painful.
+   4 - Compile-time errors will make your eyes bleed.
 */
