@@ -166,7 +166,7 @@ struct has_foo : base { virtual int foo () { return 42; } };
 struct derived : has_foo {};
 
 base * b_pointer = new derived;
-function_requiring_foo_member(static_cast<has_foo*>(b_pointer));
+requires_foo(static_cast<has_foo*>(b_pointer));
 ```
 
 A: No!  Polymorphism means using one type as if it were another type.  Here,
@@ -176,14 +176,15 @@ interface to <!-- .element: class="fragment" data-fragment-index="1" -->`foo()`.
 
 ====================
 
+# Part 3
 ## Those Other Solutions
 
-- Runtime polymorphism
-- Compile-time polymorphism
+- Inheritance-Based Runtime polymorphism
+- Template-based Compile-time polymorphism
 
 ====================
 
-## (Problems with) Runtime Polymorphism
+## (Problems with) Inheritance as Runtime Polymorphism
 
 ----
 
@@ -205,8 +206,8 @@ struct derived : base
 };
 
 base * b_pointer = new derived;
-function_requiring_foo_member(b_pointer); // Yay!
-function_requiring_bar_member(b_pointer); // Aww...
+requires_foo(b_pointer); // Yay!
+requires_bar(b_pointer); // Aww...
 ```
 
 *OR*
@@ -316,19 +317,92 @@ types with the same interfaces used interchangably.
 We must always take parameters by reference to use runtime polymorphism.
 There go our nice benefits from value semantics.
 
+----
+
+### A Quick Case Study: Widgets and Layouts
+
+Widgets are UI elements (buttons, text boxes, etc.).
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+Layouts place widgets in the UI.
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+A layout can contain widgets.
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+A layout can contain sublayouts.
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+Using inheritance, you are all but locked in to giving layouts and widgets a
+common base,
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+... even though that makes no sense.
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
 ====================
 
-## (Problems with) Compile-time Polymorphism
+## (Problems with) Templates as Compile-time Polymorphism
 
 ----
 
-TODO
+### The Classic Problems
+
+- Metaprogramming requires a large body of knowledge about a large number of
+  obscure language rules, and even more obscure TMP-specific tricks.
+
+- Metaprogramming heavy code is hard to maintain.  This is true for experts,
+  but is moreso in a team of varying skill levels.
+
+- Metaprogramming might be simply impossible to use where you work (even if
+  you wanted to).
+
+- Compile times and object code size can get away from you if you're not
+  careful.
+
+----
+
+Does not play well with runtime variation.
+
+Compile-time is easy:
+
+```cpp
+template <typename TrueType, typename FalseType, bool Selection>
+struct type_selector :
+    std::conditional<Selection, TrueType, FalseType>
+{};
+
+using int_alias = typename type_selector<int, float, true>::type;
+using float_alias = typename type_selector<int, float, false>::type;
+```
+
+Runtime is impossible (without type erasure):
+
+```cpp
+template <typename TrueType, typename FalseType>
+auto type_selector (bool selection) -> /* ??? */
+{ return /* ??? */; }
+```
+
+----
+
+Because of the lack of easy runtime interoperability, once you decide to use
+TMP, you're almost always stuck doing more TMP.
 
 ====================
 
 ## There **must** be a better way!
 
 ![](there_must_be_a_better_way.gif)
+
+====================
+
+# Part 4
+## Type Erasure
+
+----
+
+TODO
 
         </script>
       </section>
