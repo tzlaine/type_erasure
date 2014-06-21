@@ -113,6 +113,8 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
 BOOST_AUTO_TEST_CASE(boost_type_erasure_vector)
 {
+    std::cout << "copied vector<any_printable>{hi_printable, large_printable}" << "\n";
+
     std::vector<any_printable> several_printables = {
         hi_printable{},
         large_printable{}
@@ -130,6 +132,8 @@ BOOST_AUTO_TEST_CASE(boost_type_erasure_vector)
 
 BOOST_AUTO_TEST_CASE(boost_type_erasure_vector_copy_on_write)
 {
+    std::cout << "copied vector<COW<any_printable>>{hi_printable, large_printable}" << "\n";
+
     std::vector<copy_on_write<any_printable>> several_printables = {
         {hi_printable{}},
         {large_printable{}}
@@ -143,6 +147,12 @@ BOOST_AUTO_TEST_CASE(boost_type_erasure_vector_copy_on_write)
 
     std::cout << "allocations: " << allocations() << "\n\n";
     reset_allocations();
+}
+
+BOOST_AUTO_TEST_CASE(boost_type_erasure_cow_vector)
+{
+    std::cout << "copied vector<any_printable[COW]>{hi_printable, large_printable}" << "\n";
+    std::cout << "allocations: N/A\n\n";
 }
 
 /* Limitations:
