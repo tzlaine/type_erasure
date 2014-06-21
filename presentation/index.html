@@ -47,1091 +47,256 @@
 ====================
 
 ## Outline
-- The Problems
+- The Importance of Values
+- The Polymorphism Problem
 - Those Other Solutions
 - Using Type Erasure
 
-==============================================================================
+====================
 
 # Part 1
-## The Problems
-
-====================
-
-## Boilerplate for this section
-
-Note:
-Explain that in the examples, we're not using lifted metafunctions for
-simplicity, but their utility will be explained. They are useful beyond the
-lack of universal template template parameters in c++03: we can't parse
-lambda expressions if they don't contain type template parameters only
-(IS THAT TRUE?).
+## The Importance of Values
 
 ----
+
+### Dealing with values instead of references has a couple of very nice benefits
+
+- Clear ownership/lifetime semantics
+- Equational reasoning
+
+----
+
+## Clear Semantics
+
+Who owns `foo`?
 
 ```cpp
-#include <array>
-#include <cstddef>
-#include <functional>
-#include <type_traits>
-```
-
-----
-
-```cpp
-template <bool v>
-using bool_ = std::integral_constant<bool, v>;
-
-using true_ = bool_<true>;
-using false_ = bool_<false>;
-```
-
-----
-
-```cpp
-template <typename ...xs>
-struct list;
-
-template <typename x, typename xs>
-struct cons;
-
-template <typename x, typename ...xs>
-struct cons<x, list<xs...>> {
-    using type = list<x, xs...>;
-};
-```
-
-----
-
-```cpp
-template <typename xs>
-struct tail;
-
-template <typename x, typename ...xs>
-struct tail<list<x, xs...>> {
-    using type = list<xs...>;
-};
-```
-
-----
-
-```cpp
-template <typename xs>
-struct head;
-
-template <typename x, typename ...xs>
-struct head<list<x, xs...>> {
-    using type = x;
-};
-```
-
-----
-
-```cpp
-template <typename xs>
-struct is_empty;
-
-template <typename ...xs>
-struct is_empty<list<xs...>>
-    : bool_<sizeof...(xs) == 0>
-{ };
-```
-
-Note:
-Explain how this setup with `list` is equivalent to an iterator-based
-setup in the MPL, only simpler.
-
-====================
-
-## Metafunction mapping
-
-<!-- TEST CODE
-template <typename x> struct f { struct type; };
-static_assert(std::is_same<map<f, std::tuple<>>::type, std::tuple<>>::value, "");
-static_assert(std::is_same<map<f, std::tuple<int>>::type, std::tuple<f<int>::type>>::value, "");
-static_assert(std::is_same<map<f, std::tuple<int, void>>::type, std::tuple<f<int>::type, f<void>::type>>::value, "");
--->
-
-----
-
-Naive
-```cpp
-template <template <typename ...> class f, typename xs,
-          bool = is_empty<xs>::value>
-struct map
-    : cons<
-        typename f<typename head<xs>::type>::type,
-        typename map<f, typename tail<xs>::type>::type
-    >
-{ };
-
-template <template <typename ...> class f, typename xs>
-struct map<f, xs, true> {
-    using type = xs;
-};
-```
-
-----
-
-"Vectorized" metafunction application
-```cpp
-template <template <typename ...> class f, typename xs>
-struct map;
-
-template <template <typename ...> class f, typename ...xs>
-struct map<f, list<xs...>> {
-    using type = list<typename f<xs>::type...>;
-};
-```
-
-----
-
-## Time
-![](plot/fmap.deep/clang35.time.png)
-
-----
-
-## Memory usage
-![](plot/fmap.deep/clang35.memusg.png)
-
-====================
-
-## Logical operations
-(without short-circuiting)
-
-<!-- TEST CODE
-static_assert(and_<>::value, "");
-static_assert(!and_<false_>::value, "");
-static_assert(and_<true_>::value, "");
-static_assert(!and_<true_, false_>::value, "");
-static_assert(and_<true_, true_>::value, "");
-static_assert(!and_<true_, true_, true_, true_, true_, false_>::value, "");
--->
-
-----
-
-Naive
-```cpp
-template <typename ...xs>
-struct and_ : true_ { };
-
-template <typename x, typename ...xs>
-struct and_<x, xs...>
-    : std::conditional_t<x::value, and_<xs...>, x>
-{ };
-```
-
-----
-
-With `std::is_same`
-```cpp
-template <bool ...> struct bool_seq;
-
-template <typename ...xs>
-using and_ = std::is_same<
-    bool_seq<xs::value...>,
-    bool_seq<(xs::value, true)...>
->;
-```
-
-----
-
-## Time
-![](plot/logical_or/pres/clang35.time.png)
-
-----
-
-## Memory usage
-![](plot/logical_or/pres/clang35.memusg.png)
-
-====================
-
-## Key-based lookup
-
-<!-- TEST CODE
-template <int> struct k;
-template <int> struct v;
-static_assert(std::is_same<at_key<k<0>, pair<k<0>, v<0>>>::type, v<0>>::value, "");
-static_assert(std::is_same<at_key<k<0>, pair<k<0>, v<0>>, pair<k<1>, v<1>>>::type, v<0>>::value, "");
-static_assert(std::is_same<at_key<k<1>, pair<k<0>, v<0>>, pair<k<1>, v<1>>>::type, v<1>>::value, "");
--->
-
-----
-
-In the following slides...
-```cpp
-template <typename x>
-struct no_decay { using type = x; };
-
-template <typename key, typename value>
-struct pair { };
-```
-
-----
-
-With single inheritance
-```cpp
-template <typename ...pairs>
-struct map {
-    template <typename fail = void>
-    static typename fail::key_not_found at_key(...);
-};
-
-template <typename key, typename value, typename ...pairs>
-struct map<pair<key, value>, pairs...> : map<pairs...> {
-    using map<pairs...>::at_key;
-    static no_decay<value> at_key(no_decay<key>*);
-};
-
-template <typename key, typename ...pairs>
-using at_key = decltype(
-    map<pairs...>::at_key((no_decay<key>*)nullptr)
-);
-```
-
-----
-
-With multiple inheritance
-```cpp
-template <typename ...xs>
-struct inherit : xs... { };
-
-template <typename key, typename value>
-static no_decay<value> lookup(pair<key, value>*);
-
-template <typename key, typename ...pairs>
-using at_key = decltype(lookup<key>((inherit<pairs...>*)nullptr));
-```
-
-----
-
-## Time
-![](plot/at_key.deep/clang35.time.png)
-
-----
-
-## Memory usage
-![](plot/at_key.deep/clang35.memusg.png)
-
-====================
-
-## Index-based lookup
-
-<!-- TEST CODE
-template <int> struct x;
-static_assert(std::is_same<at<0, x<0>>::type, x<0>>::value, "");
-static_assert(std::is_same<at<0, x<0>, x<1>>::type, x<0>>::value, "");
-static_assert(std::is_same<at<1, x<0>, x<1>>::type, x<1>>::value, "");
-static_assert(std::is_same<at<2, x<0>, x<1>, x<2>>::type, x<2>>::value, "");
--->
-
-----
-
-In the following slides...
-```cpp
-template <typename x>
-struct no_decay { using type = x; };
-
-template <std::size_t index, typename value>
-struct index_pair { };
-```
-
-----
-
-Naive
-```cpp
-template <std::size_t index, typename x, typename ...xs>
-struct at
-    : at<index - 1, xs...>
-{ };
-
-template <typename x, typename ...xs>
-struct at<0, x, xs...> {
-    using type = x;
-};
-```
-
-----
-
-Using overload resolution
-```cpp
-template <typename ignore>
-struct lookup;
-
-template <std::size_t ...ignore>
-struct lookup<std::index_sequence<ignore...>> {
-    template <typename nth>
-    static no_decay<nth>
-    apply(decltype(ignore, (void*)nullptr)..., no_decay<nth>*, ...);
-};
-
-template <std::size_t index, typename ...xs>
-using at = decltype(
-    lookup<std::make_index_sequence<index>>::apply(
-        (no_decay<xs>*)nullptr...
-    )
-);
-```
-
-----
-
-## Time
-![](plot/at_index.deep/pres/clang35.time.png)
-
-----
-
-## Memory usage
-![](plot/at_index.deep/pres/clang35.memusg.png)
-
-====================
-
-## Left-folding
-
-Note: Once you win the folds, you win (almost) everything. Explain this.
-
-----
-
-Naive
-```cpp
-template <template <typename ...> class f, typename state, typename xs,
-          bool = is_empty<xs>::value>
-struct foldl {
-    using type = state;
-};
-
-template <template <typename ...> class f, typename state, typename xs>
-struct foldl<f, state, xs, false>
-    : foldl<
-        f,
-        typename f<state, typename head<xs>::type>::type,
-        typename tail<xs>::type
-    >
-{ };
-```
-
-----
-
-Using variadic templates
-```cpp
-template <bool done> struct foldl_impl {
-    template <template <class ...> class f, class state,
-              class x, class ...xs>
-    using result = typename foldl_impl<sizeof...(xs) == 0>::
-        template result<f, typename f<state, x>::type, xs...>;
-};
-
-template <> struct foldl_impl<true> {
-    template <template <class ...> class f, class state, class ...>
-    using result = state;
-};
-
-template <template <class ...> class f, class state, class ...xs>
-struct foldl {
-    using type = typename foldl_impl<sizeof...(xs) == 0>::
-                 template result<f, state, xs...>;
-};
-```
-
-Note:
-- Observe that this is a general technique of moving the specialization
-outside the alias.
-- In the MPL11, we use this together with unrolling to achieve better
-performance and recursion depth.
-
-----
-
-Bonus for specific folds on homogeneous data: `constexpr`
-```cpp
-template <typename F, typename State, typename T, std::size_t N>
-constexpr State
-homogeneous_foldl(F f, State s, std::array<T, N> const& xs) {
-    for (std::size_t i = 0; i < xs.size(); ++i)
-        s = f(s, xs[i]);
-    return s;
-}
-
-template <typename ...xs>
-using sum = std::integral_constant<
-    decltype(homogeneous_foldl(std::plus<>{}, 0, {xs::value...})),
-    homogeneous_foldl(std::plus<>{}, 0, {xs::value...})
->;
-```
-
-Note: We can't use a range-based for loop here because `std::array` does not
-provide `constexpr` iterators.
-
-----
-
-## Time
-![](plot/sum.deep/clang35.time.png)
-
-----
-
-## Memory usage
-![](plot/sum.deep/clang35.memusg.png)
-
-====================
-
-## Universal template template params
-(or farewell `quoteN`)
-
-----
-
-C++03
-```cpp
-template <template <typename> class f>
-struct quote1 { ... };
-
-template <template <typename, typename> class f>
-struct quote2 { ... };
-
+foo_t * foo_factory ();
 ...
-
-template <template <typename, typename, ..., typename> class f>
-struct quoteN { ... };
+foo_t * foo = foo_factory();
 ```
 
-----
+Is this better?
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-C++11
 ```cpp
-template <template <typename ...> class f>
-struct quote { ... };
+std::shared_ptr<foo_t> foo_factory ();
+...
+std::shared_ptr<foo_t> foo = foo_factory();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+That depends on whether you're partial to global state....
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+## Equational Reasoning
+
+```cpp
+foo_t * foo_factory ();
+void foo_user (foo_t * f);
+...
+foo_t * foo = foo_factory();
+foo_user(foo);
+
+// What can I say about foo here?
 ```
 
-====================
+With value types, you only have to reason about the values in the code front
+of you.
 
-## And the list continues
-http://github.com/ldionne/mpl11/tree/master/benchmarks
-
-====================
-
-## The MPL is stuck with C++03
-## And we're stuck with the MPL <!-- .element: class="fragment" -->
+With reference types, you must **simultaneously** reason about code that
+mutates the values elsewhere.
 
 ====================
 
-## We need something new.
-## What would that look like?
-
-==============================================================================
-
-# Act 2
-## Towards a MPL successor
-
-<!--
-TODO: Perhaps show what's wrong with the current MPL, or simply list some
-stuff that should be improved in a MPL successor. Suggestions:
-- Error messages (e.g. hit on faux-variadics)
-- Obscure implementation
-    + A kitten dies each time a user sees the internals
-    + People can't contribute
-    + You're left with an unmaintainable mess
-    + Preprocessing and parsing time, i.e. the time penalty just
-      for including the library.
--->
-
-====================
-
-## But before...
-## __What__ is metaprogramming in C++?
-<!-- .element: class="fragment" -->
+# Part 2
+## The Polymorphism Problem
 
 ----
 
-## What is the purpose of the MPL?
-Note: State the scope of a MPL successor.
+## Why Polymorphism?
+### Code reuse of course!
+
+Q: How does the author of this function intend its users to use it?
+
+```cpp
+bool my_predicate (some_t obj);
+```
+
+A: Non-polymorphically.  You have to give me a <!-- .element: class="fragment" data-fragment-index="1" -->`some_t` object, or get sliced.
+Not terribly reusable with other types.
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-## of Fusion?
+Q: How about this one?
 
-====================
+```cpp
+bool my_predicate (const base_t & obj);
+```
 
-## Orthogonal design aspects
+A: Runtime-polymorphically.  You can give me any <!-- .element: class="fragment" data-fragment-index="1" -->
+`base_t`-derived object by
+reference.  The function is now more reusable, but you must use inheritance.
+Yuck!<!-- .element: class="fragment" data-fragment-index="1" -->
 
-====================
-
-## Tagging system
 
 ----
 
-Basic tags (current MPL)
+Q: Or this?
+
 ```cpp
 template <typename T>
-struct tag_of { using type = typename T::mpl_tag; };
-
-struct list_tag;
-
-template <typename ...xs>
-struct list { using mpl_tag = list_tag; };
+bool my_predicate (T obj);
 ```
 
-----
-
-Datatypes
-```cpp
-template <typename T>
-struct datatype { using type = typename T::mpl_datatype; };
-
-struct List;
-
-template <typename ...xs>
-struct list { using mpl_datatype = List; };
-
-template <typename x, typename xs>
-struct cons { using mpl_datatype = List; };
-
-struct nil { using mpl_datatype = List; };
-```
-
-Note:
-1. They are the same as basic tags, except for the fact that we're making
-explicit the fact that a datatype can have multiple constructors, which
-was not really advertised in the MPL.
-2. From now on, we'll be using datatypes instead of simple tags in
-the examples.
+A: Compile-time-polymorphically.  You can give me any object whose type can be
+used to instantiated the template.  The function is now even more reusable,
+but you must use metaprogramming. Gross!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ====================
 
-## Metafunction dispatching
+## Runtime Polymorphism Problems
 
 ----
 
-Per-metafunction dispatching
+The inheritance mechanism gives us polymorphism, but we must either:
+
+- Limit ourselves to a single interface found in the base class:
+
 ```cpp
-template <typename Datatype> struct head_impl;
+struct base
+{ virtual int foo () const = 0; };
 
-template <> struct head_impl<List> {
-    template <typename> struct apply;
+struct derived : base
+{
+    virtual int foo () const
+    { return 42; }
 
-    template <typename x, typename ...xs>
-    struct apply<list<x, xs...>> { using type = x; };
+    static const int pi = 3;
 
-    template <typename x, typename xs>
-    struct apply<cons<x, xs>> { using type = x; };
+    bar double bar () const
+    { return 1.0 * pi; }
 };
 
-template <typename xs>
-using head = typename head_impl<typename datatype<xs>::type>::
-             template apply<xs>;
-
-// etc...
+base * b_pointer = new derived;
+function_requiring_foo_member(b_pointer); // Yay!
+function_requiring_bar_member(b_pointer); // Aww...
 ```
+
+*OR*
 
 ----
 
-Type classes (from Haskell)
+- Use multiple inheritance to bolt on multiple interfaces:
+
 ```cpp
-template <> struct Iterable<List> : defaults<Iterable> {
-    template <typename> struct head_impl;
+struct base { virtual int foo () { return 42; } };
+struct derived_1 : public base {};
+struct derived_2 : public base {};
+struct derived_subclass : public derived_1, public derived_2 {};
+```
 
-    template <typename x, typename ...xs>
-    struct head_impl<list<x, xs...>> { using type = x; };
+Which leads to the "diamond of death",
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-    template <typename x, typename xs>
-    struct head<cons<x, xs>> { using type = x; };
+which leads to virtual inheritance,
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
-    // Same for tail<> and is_empty<>
+which leads to fear,
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+which leads to anger,
+<!-- .element: class="fragment" data-fragment-index="4"-->
+
+... you get it.
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+We cannot make classes from different class hierarchies conform to a common
+interface, because they have no common base to use when passing them.
+
+```cpp
+struct int_base
+{
+    virtual int foo () { return 42; }
+    virtual void log () const;
+};
+struct float_base
+{
+    virtual float foo () { return 3.0; }
+    virtual void log () const;
 };
 
-template <typename xs>
-using head = typename Iterable<typename datatype<xs>::type>::
-             template head_impl<xs>;
-
-// etc...
+struct int_derived : public int_base {};
+struct float_derived : public float_base {};
 ```
 
-Note: Explain what is the minimal complete definition (m.c.d.).
+Note that `int_derived` and `float_derived` both have a `void log () const`.
 
 ----
 
-Type classes (cont.)
+So, we ditch code reuse in the case of logging:
+
 ```cpp
-template <template <typename ...> class Typeclass>
-struct defaults;
-
-template <>
-struct defaults<Iterable> {
-    template <typename index, typename xs>
-    struct at_impl { ... };
-
-    template <typename index, typename xs>
-    struct last_impl { ... };
-
-    ...
-};
+void log_to_terminal (const int_base & loggee);
+void log_to_terminal (const double_base & loggee);
 ```
 
-Note: Explain how default methods can be customized simply by implementing
-them in the `Iterable<List>` specialization.
+Or we resort to ugly hacks:
+
+```cpp
+struct log_base { virtual void log () const; };
+struct int_base : log_base {/*...*/}; 
+struct float_base : log_base {/*...*/}; 
+void log_to_terminal (const log_base & loggee);
+```
+
+----
+
+We cannot easily separate interface and implementation without using multiple
+inheritance.
+
+----
+
+Virtual functions can be tricky to get right, especially in large class
+heirarchies.
+
+- We've all seen lots of these problems in real code.
+- C++11's `override` and `final` help
+- There is frequently a question of whether or not a given type's virtual
+  function implementation should call its base class's version of the same
+  function.
+
+----
+
+In addition to all the above limitations, we are limited in which interfaces
+we give to which types by our choice of base class(es).
+
+- Inheritance imposes very tight coupling.
+- It is not possible to have unrelated types with the same interfaces used
+  interchangably.
+
+----
+
+We must always take parameters by reference to use runtime polymorphism.
+There go our nice benefits from value semantics.
 
 ====================
 
-## Some useful type classes
-(MPL11 type classes differ from Haskell's)
+## Compile-time Polymorphism Problems
 
-----
-
-## Functor
-- `fmap<f, functor>` (m.c.d.)
-
-----
-
-## Foldable
-- `foldl<f, state, foldable>` (m.c.d.)
-- `foldr<f, state, foldable>` (m.c.d.)
-- `sum<foldable>`
-- `product<foldable>`
-- `{any,all,none}<predicate, foldable>`
-- `{maximum,minimum}<foldable>`
-- ...
-
-----
-
-## Iterable
-- `head<iterable>` (m.c.d.)
-- `tail<iterable>` (m.c.d.)
-- `is_empty<iterable>` (m.c.d.)
-- `at<index, iterable>`
-- `last<iterable>`
-- `drop<n, iterable>`
-- `drop_while<predicate, iterable>`
-- ...
+TODO
 
 ====================
 
-## Algorithm/sequence interaction
+## There **must** be a better way!
 
-----
-
-Iterators
-```cpp
-template <typename first, typename last>
-struct algorithm_impl {
-    // Use `next<>`, `deref<>`, `equal<>` and friends
-};
-
-template <typename sequence>
-using algorithm = algorithm_impl<
-    typename begin<sequence>::type,
-    typename end<sequence>::type
->;
-```
-
-----
-
-Sequence-oriented type classes
-```cpp
-template <typename sequence>
-struct algorithm {
-    // Use appropriate type class methods.
-};
-```
-
-====================
-
-## Evaluation strategy
-
-----
-
-Strict with classic metafunctions
-```cpp
-template <typename n, typename xs>
-struct drop
-    : if_<
-        or_<
-            typename equal<n, int_<0>>::type,
-            typename is_empty<xs>::type
-        >,
-        xs,
-        typename drop<
-            typename minus<n, int_<1>>::type,
-            typename tail<xs>::type
-        >::type
-    >
-{ };
-```
-
-----
-
-Strict with classic metafunctions (cont.)
-```cpp
-template <typename n, typename xs,
-    bool = or_<equal<n, int_<0>>, is_empty<xs>>::value>
-struct drop {
-    using type = xs;
-};
-
-template <typename n, typename xs>
-struct drop<n, xs, false>
-    : drop<
-        typename minus<n, int_<1>>::type,
-        typename tail<xs>::type
-    >
-{ };
-```
-
-----
-
-Lazy with classic metafunctions
-```cpp
-template <typename n, typename xs>
-struct drop
-    : if_<or_<equal<n, int_<0>>, is_empty<xs>>,
-        xs,
-        drop<minus<n, int_<1>>, tail<xs>>
-    >
-{ };
-```
-
-Note:
-Dismiss the cynics about performance.
-
-Pros:
-
-- No `typename ::type`
-- Powerful in conjunction with e.g. `foldr`
-- Naive algorithm implementation has the same behavior as a MPL view
-- Allows composition of metafunctions even when there's an `if_`.
-
-Cons:
-
-- All arguments require a nested `::type`, which introduces boxed types.
-
-----
-
-Strict with new-style metafunctions
-```cpp
-template <typename N, typename Xs>
-constexpr auto drop(N n, Xs xs) {
-    return if_(n == int_<0>{},
-        xs,
-        drop(n - int_<1>{}, tail(xs))
-    );
-}
-```
-
-----
-
-Strict with new-style metafunctions (cont.)
-```cpp
-template <typename N, typename Xs>
-constexpr auto drop_impl(N n, Xs xs, true_) { return xs; }
-
-template <typename N, typename Xs>
-constexpr auto drop(N n, Xs xs) {
-    return drop_impl(n, xs, n == int_<0>{} || is_empty(xs));
-}
-
-template <typename N, typename Xs>
-constexpr auto drop_impl(N n, Xs xs, false_) {
-    return drop(n - int_<1>{}, tail(xs));
-}
-```
-
-Note:
-Pros:
-
-- Unifies syntax
-- Replaces Fusion
-- Can handle non-constexpr
-
-Cons:
-
-- Can't handle some nasty types as-is (`void`, incomplete types, ...)
-- How do we handle conditionals? Perhaps they're not _that_ important
-  because we can use overload resolution instead?
-
-====================
-
-## Considered designs
-
-<!--
-TODO: For each design, show a minimal MPL. Explain what are the criteria
-for qualifying as a minimal MPL. (Foldable, Functor, Iterable, if_)
--->
-
-----
-
-## Faithful MPL reimplementation
-- Tagging: Basic
-- Dispatching: Per-metafunction
-- Algorithms: Iterators
-- Evaluation: Strict + classic
-
-----
-
-## Haskell-ish (MPL11)
-- Tagging: Datatypes
-- Dispatching: Type classes
-- Algorithms: Type classes
-- Evaluation: Lazy + classic
-
-Note: Explain and show rewrite rules.
-
-----
-
-## Heterogeneous constexpr
-- Tagging: Datatypes
-- Dispatching: Type classes
-- Algorithms: Type classes
-- Evaluation: Strict + new-style
-
-====================
-
-## Comparison
-
-====================
-
-## Metafunction mapping
-
-----
-
-## MPL
-```cpp
-using xs = vector<...>;
-using ys = transform<xs, f>::type;
-```
-
-----
-
-## MPL11
-```cpp
-using xs = list<...>;
-using ys = fmap<f, xs>;
-```
-
-----
-
-## Constexpr
-```cpp
-constexpr auto xs = list<...>{};
-constexpr auto ys = fmap(f, xs);
-```
-
-----
-
-## Time
-![](code/fmap/fmap.time.png)
-
-----
-
-## Memory usage
-![](code/fmap/fmap.memusg.png)
-
-====================
-
-## Left fold
-
-----
-
-## MPL
-```cpp
-using xs = vector<...>;
-using z = fold<xs, state, f>::type;
-```
-
-----
-
-## MPL11
-```cpp
-using xs = list<...>;
-using z = foldl<f, state, xs>;
-```
-
-----
-
-## Constexpr
-```cpp
-constexpr auto xs = list<...>{};
-constexpr auto ys = foldl(f, state, xs);
-```
-
-----
-
-## Time
-![](code/foldl/foldl.time.png)
-
-----
-
-## Memory usage
-![](code/foldl/foldl.memusg.png)
-
-====================
-
-## Including
-
-----
-
-<!-- TODO: Improve layout -->
-
-### GCC 4.9
-- MPL: 8.2 s
-- MPL11: 0.09 s
-- MPL11 (minified): 0.08 s
-
-----
-
-### GCC 4.9 (% speedup over the MPL)
-- MPL11: 9 111 %
-- MPL11 (minified): 10 249 %
-
-----
-
-### Clang 3.5
-- MPL: 2.6816 s
-- MPL11: 0.0471 s
-
-----
-
-### Clang 3.5 (% speedup over the MPL)
-- MPL11: 5 693 %
-- MPL11 (minified): 6 415 %
-
-====================
-
-## Roadmap
-
-----
-
-## GSoC
-Note: Finish design space exploration during GSoC.
-
-----
-
-## Boost
-
-----
-
-## Standard C++ (?)
-
-====================
-
-# Thank you
-
-<span class="fragment fade-in" data-fragment-index="1">
-http://ldionne.com <br>
-http://github.com/ldionne
-</span>
-
-====================
-
-## Bonus
-(more TMP hacks)
-
-====================
-
-## Logical and
-
-----
-
-With `noexcept`
-```cpp
-void allow_expansion(...) noexcept;
-
-template <bool condition>
-struct noexcept_if { noexcept_if() noexcept(condition) { } };
-
-template <typename ...xs>
-using and_ = bool_<
-    noexcept(allow_expansion(noexcept_if<xs::value>{}...))
->;
-```
-
-----
-
-With `constexpr`
-```cpp
-template <std::size_t N>
-constexpr bool and_impl(const bool (&array)[N]) {
-    for (bool elem: array)
-        if (!elem)
-            return false;
-    return true;
-}
-
-template <typename ...xs>
-using and_ = bool_<
-    and_impl<sizeof...(xs) + 1>({(bool)xs::value..., true})
->;
-```
-
-----
-
-With overload resolution
-```cpp
-template <typename ...T> true_  pointers_only(T*...);
-template <typename ...T> false_ pointers_only(T...);
-                         true_  pointers_only();
-
-template <typename ...xs>
-using and_ = decltype(pointers_only(
-    std::conditional_t<xs::value, int*, int>{}...
-));
-```
-
-----
-
-With partial specialization
-```cpp
-template <typename ...>
-struct and_impl : false_ { };
-
-template <typename ...T>
-struct and_impl<std::integral_constant<T, true>...> : true_ { };
-
-template <typename ...xs>
-using and_ = and_impl<bool_<xs::value>...>;
-```
-
-====================
-
-## Index-based lookup
-
-----
-
-Using multiple inheritance
-```cpp
-template <std::size_t index, typename value>
-no_decay<value> lookup(index_pair<index, value>*);
-
-template <typename indices, typename ...xs>
-struct index_map;
-
-template <std::size_t ...indices, typename ...xs>
-struct index_map<std::index_sequence<indices...>, xs...>
-    : index_pair<indices, xs>...
-{ };
-
-template <std::size_t index, typename ...xs>
-using at = decltype(lookup<index>(
-    (index_map<std::index_sequence_for<xs...>, xs...>*)nullptr
-));
-```
-
-----
-
-Using multiple inheritance (v2)
-```cpp
-template <std::size_t, std::size_t, typename x>
-struct select { };
-
-template <std::size_t n, typename x>
-struct select<n, n, x> { using type = x; };
-
-template <std::size_t n, typename indices, typename ...xs>
-struct lookup;
-
-template <std::size_t n, std::size_t ...index, typename ...xs>
-struct lookup<n, std::index_sequence<index...>, xs...>
-    : select<n, index, xs>...
-{ };
-
-template <std::size_t n, typename ...xs>
-using at = lookup<n, std::index_sequence_for<xs...>, xs...>;
-```
-
+![](there_must_be_a_better_way.gif)
 
         </script>
       </section>
