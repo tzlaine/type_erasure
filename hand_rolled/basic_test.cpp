@@ -1,8 +1,9 @@
 #define ACCEPT_REFERENCE_WRAPPER 1
 
+#include <copy_on_write.hpp>
+
 #include "hand_rolled.hpp"
 #include "hand_rolled_cow.hpp"
-#include "copy_on_write.hpp"
 
 
 #define BOOST_TEST_MODULE TypeErasure

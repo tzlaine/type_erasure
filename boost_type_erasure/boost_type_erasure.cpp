@@ -1,6 +1,5 @@
 #include <printable_types.hpp>
-
-#include <hand_rolled/copy_on_write.hpp>
+#include <copy_on_write.hpp>
 
 #include <boost/type_erasure/any.hpp>
 #include <boost/type_erasure/member.hpp>
