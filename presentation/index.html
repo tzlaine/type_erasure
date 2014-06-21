@@ -48,9 +48,9 @@
 
 ## Outline
 - The Importance of Values
-- The Polymorphism Problem
+- Why Polymorphism?
 - Those Other Solutions
-- Using Type Erasure
+- Type Erasure
 
 ====================
 
@@ -59,7 +59,7 @@
 
 ----
 
-### Dealing with values instead of references has a couple of very nice benefits
+Dealing with values instead of references has a couple of very nice benefits
 
 - Clear ownership/lifetime semantics
 - Equational reasoning
@@ -112,12 +112,12 @@ mutates the values elsewhere.
 ====================
 
 # Part 2
-## The Polymorphism Problem
+## Why Polymorphism?
+
+### Code reuse of course!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
-
-## Why Polymorphism?
-### Code reuse of course!
 
 Q: How does the author of this function intend its users to use it?
 
@@ -142,7 +142,6 @@ A: Runtime-polymorphically.  You can give me any <!-- .element: class="fragment"
 reference.  The function is now more reusable, but you must use inheritance.
 Yuck!<!-- .element: class="fragment" data-fragment-index="1" -->
 
-
 ----
 
 Q: Or this?
@@ -157,9 +156,34 @@ used to instantiated the template.  The function is now even more reusable,
 but you must use metaprogramming. Gross!
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+----
+
+Q: Is this an example of polymorphism?
+
+```cpp
+struct base { virtual ~base() {} };
+struct has_foo : base { virtual int foo () { return 42; } };
+struct derived : has_foo {};
+
+base * b_pointer = new derived;
+function_requiring_foo_member(static_cast<has_foo*>(b_pointer));
+```
+
+A: No!  Polymorphism means using one type as if it were another type.  Here,
+we have to cast to make the type we have look like the type expected in the
+interface to <!-- .element: class="fragment" data-fragment-index="1" -->`foo()`.
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
 ====================
 
-## Runtime Polymorphism Problems
+## Those Other Solutions
+
+- Runtime polymorphism
+- Compile-time polymorphism
+
+====================
+
+## (Problems with) Runtime Polymorphism
 
 ----
 
@@ -176,10 +200,8 @@ struct derived : base
     virtual int foo () const
     { return 42; }
 
-    static const int pi = 3;
-
-    bar double bar () const
-    { return 1.0 * pi; }
+    virtual float bar () const
+    { return 3.0f; }
 };
 
 base * b_pointer = new derived;
@@ -194,10 +216,14 @@ function_requiring_bar_member(b_pointer); // Aww...
 - Use multiple inheritance to bolt on multiple interfaces:
 
 ```cpp
-struct base { virtual int foo () { return 42; } };
-struct derived_1 : public base {};
-struct derived_2 : public base {};
-struct derived_subclass : public derived_1, public derived_2 {};
+struct base { virtual ~base() {} };
+struct has_foo : base { virtual int foo () { return 42; } };
+struct has_bar : base { virtual float bar () { return 3.0f; } };
+struct derived : has_foo, has_bar {};
+
+base * b_pointer = new derived;
+requires_foo(static_cast<has_foo*>(b_pointer)); // Wait, but...
+requires_bar(static_cast<has_bar*>(b_pointer)); // Aww...
 ```
 
 Which leads to the "diamond of death",
@@ -215,44 +241,49 @@ which leads to anger,
 ... you get it.
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
+More importantly, we have actually given up polymorphism by doing this; we
+must carry around the information that <!-- .element: class="fragment"
+data-fragment-index="6" --> `b_pointer` contains interfaces not found in
+`base`.
+
+
 ----
 
 We cannot make classes from different class hierarchies conform to a common
 interface, because they have no common base to use when passing them.
 
 ```cpp
-struct int_base
+struct int_foo
 {
     virtual int foo () { return 42; }
     virtual void log () const;
 };
-struct float_base
+struct float_foo
 {
     virtual float foo () { return 3.0; }
     virtual void log () const;
 };
-
-struct int_derived : public int_base {};
-struct float_derived : public float_base {};
 ```
 
-Note that `int_derived` and `float_derived` both have a `void log () const`.
+Note that `int_foo` and `float_foo` both have a member
+
+`void log() const`.
 
 ----
 
 So, we ditch code reuse in the case of logging:
 
 ```cpp
-void log_to_terminal (const int_base & loggee);
-void log_to_terminal (const double_base & loggee);
+void log_to_terminal (const int_foo & loggee);
+void log_to_terminal (const float_foo & loggee);
 ```
 
 Or we resort to ugly hacks:
 
 ```cpp
 struct log_base { virtual void log () const; };
-struct int_base : log_base {/*...*/}; 
-struct float_base : log_base {/*...*/}; 
+struct int_foo : log_base {/*...*/}; 
+struct float_foo : log_base {/*...*/}; 
 void log_to_terminal (const log_base & loggee);
 ```
 
@@ -277,9 +308,8 @@ heirarchies.
 In addition to all the above limitations, we are limited in which interfaces
 we give to which types by our choice of base class(es).
 
-- Inheritance imposes very tight coupling.
-- It is not possible to have unrelated types with the same interfaces used
-  interchangably.
+Inheritance imposes very tight coupling; it is not possible to have unrelated
+types with the same interfaces used interchangably.
 
 ----
 
@@ -288,7 +318,9 @@ There go our nice benefits from value semantics.
 
 ====================
 
-## Compile-time Polymorphism Problems
+## (Problems with) Compile-time Polymorphism
+
+----
 
 TODO
 
