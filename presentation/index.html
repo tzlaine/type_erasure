@@ -402,8 +402,126 @@ TMP, you're almost always stuck doing more TMP.
 
 ----
 
-TODO
+Based on everything we've seen so far, we want an interface that works like
+this:
 
+```cpp
+// No coupling!
+struct foo { int value () const; }; 
+struct bar { int value () const; };
+
+// No templates!
+int value_of (/* magic type */ obj)
+{ return obj.value(); }
+
+// Value semantics!
+assert(value_of(foo()) == value_of(bar()));
+```
+
+----
+
+### Making magic happen
+
+```cpp
+struct anything
+{
+    anything () = default;
+    anything (const anything & rhs);
+    anything & operator= (const anything & rhs);
+    template <typename T> anything (T t);
+    template <typename T> anything & operator= (T t);
+
+    struct handle_base
+    {
+        virtual ~handle_base () {}
+        virtual handle_base* clone () const = 0;
+    };
+
+    template <typename T>
+    struct handle : handle_base
+    {
+        handle (T value);
+        virtual handle_base* clone () const;
+        T value_;
+    };
+
+    std::unique_ptr<handle_base> handle_;
+};
+```
+<!-- .element: class="stretch" -->
+
+----
+
+`anything` definitions
+
+```cpp
+template <typename T>
+anything::anything (T t) :
+    handle_ (new handle<typename std::remove_reference<T>::type>(
+        std::forward<T>(t)
+    ))
+{}
+
+anything::anything (const anything & rhs) : handle_ (rhs.handle_->clone()) {}
+
+template <typename T>
+anything::anything & operator= (T t)
+{
+    anything temp(std::forward<T>(t));
+    std::swap(temp, *this);
+    return *this;
+}
+
+anything & anything::operator= (const anything & rhs)
+{
+    anything temp(rhs);
+    std::swap(temp, *this);
+    return *this;
+}
+```
+<!-- .element: class="stretch" -->
+
+----
+
+`anything::handle` definitions
+
+```cpp
+template <typename T> 
+anything::handle<T>::handle (T value) :
+    value_ (std::move(value))
+{}
+
+template <typename T> 
+anything::handle_base* anything::handle<T>::clone () const
+{ return new handle(value_); }
+```
+
+----
+
+`anything` in action
+
+```cpp
+struct foo { int value () const; };
+...
+anything a;
+
+int i = 1; 
+a = i;
+
+a = 2.0;
+a = std::string("3");
+a = foo();
+
+int * i_ptr = &i;
+a = i_ptr;
+```
+
+----
+
+Q: Can `anything` really hold anything?
+
+A: No, but it can hold anything with a copy constructor.
+<!-- .element: class="fragment" data-fragment-index="2" -->
         </script>
       </section>
     </div>
