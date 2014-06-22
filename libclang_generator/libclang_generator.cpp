@@ -1,7 +1,8 @@
+#include <file_utils.hpp>
+
 #include <clang-c/Index.h>
 
 #include <array>
-#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -30,28 +31,6 @@ struct client_data
     std::string form;
     std::string headers;
 };
-
-std::string file_slurp (const std::string & filename)
-{
-    std::string retval;
-
-    std::ifstream ifs(filename, std::ifstream::in | std::ifstream::binary);
-    ifs.seekg(0, std::ifstream::end);
-    if (0 < ifs.tellg())
-        retval.resize(ifs.tellg());
-    ifs.seekg(0);
-
-    const std::streamsize read_size = 64 * 1024; // 64k per read
-    char* retval_pos = &retval[0];
-    std::streamsize bytes_read = 0;
-    do {
-        ifs.read(retval_pos, read_size);
-        bytes_read = ifs.gcount();
-        retval_pos += bytes_read;
-    } while (bytes_read == read_size);
-
-    return retval;
-}
 
 std::pair<CXToken*, unsigned int>
 get_tokens (CXTranslationUnit tu, CXCursor cursor)
@@ -220,24 +199,6 @@ member_params (const client_data & data, CXCursor cursor)
     free_tokens(data.tu, tokens);
 
     return {str, args, return_str, function_name};
-}
-
-std::vector<std::string> line_break (const std::string & form)
-{
-    std::vector<std::string> retval;
-
-    std::string::size_type prev_pos = 0;
-    while (true) {
-        std::string::size_type pos = form.find('\n', prev_pos);
-        if (pos == std::string::npos)
-            break;
-        retval.push_back(form.substr(prev_pos, pos - prev_pos));
-        prev_pos = pos + 1;
-    }
-
-    retval.push_back(form.substr(prev_pos));
-
-    return retval;
 }
 
 void indent (std::vector<std::string> & lines, const client_data & data)
