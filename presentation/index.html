@@ -72,7 +72,7 @@ Who owns `foo`?
 
 ```cpp
 foo_t * foo_factory ();
-...
+
 foo_t * foo = foo_factory();
 ```
 
@@ -81,7 +81,7 @@ Is this better?
 
 ```cpp
 std::shared_ptr<foo_t> foo_factory ();
-...
+
 std::shared_ptr<foo_t> foo = foo_factory();
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -96,11 +96,15 @@ That depends on whether you're partial to global state....
 ```cpp
 foo_t * foo_factory ();
 void foo_user (foo_t * f);
-...
-foo_t * foo = foo_factory();
-foo_user(foo);
 
-// What can I say about foo here?
+void some_function () {
+    foo_t * foo = foo_factory();
+    foo_user(foo);
+
+    // What can I say about foo here?
+
+    /* more code ... */
+}
 ```
 
 With value types, you only have to reason about the values in the code front
@@ -161,12 +165,14 @@ but you must use metaprogramming. Gross!
 Q: Is this an example of polymorphism?
 
 ```cpp
-struct base { virtual ~base() {} };
+struct base { virtual ~base () {} };
 struct has_foo : base { virtual int foo () { return 42; } };
 struct derived : has_foo {};
 
-base * b_pointer = new derived;
-requires_foo(static_cast<has_foo*>(b_pointer));
+void some_function () {
+    base * b_pointer = new derived;
+    requires_foo(static_cast<has_foo*>(b_pointer)); // <-- this here
+}
 ```
 
 A: No!  Polymorphism means using one type as if it were another type.  Here,
@@ -201,14 +207,23 @@ struct derived : base
     virtual int foo () const
     { return 42; }
 
-    virtual float bar () const
+    float bar () const
     { return 3.0f; }
 };
 
-base * b_pointer = new derived;
-requires_foo(b_pointer); // Yay!
-requires_bar(b_pointer); // Aww...
+void some_function () {
+    base * b_pointer = new derived;
+    uses_foo(b_pointer);    // Yay!
+    // uses_bar(b_pointer); // Aww...
+}
 ```
+
+----
+
+Note that the "base" could use multiple inheritance, as long as the symbols in
+all the multiply inherited bases do not collide.
+
+----
 
 *OR*
 
@@ -218,13 +233,15 @@ requires_bar(b_pointer); // Aww...
 
 ```cpp
 struct base { virtual ~base() {} };
-struct has_foo : base { virtual int foo () { return 42; } };
-struct has_bar : base { virtual float bar () { return 3.0f; } };
+struct has_foo : virtual base { virtual int foo () { return 42; } };
+struct has_bar : virtual base { virtual float bar () { return 3.0f; } };
 struct derived : has_foo, has_bar {};
 
-base * b_pointer = new derived;
-requires_foo(static_cast<has_foo*>(b_pointer)); // Wait, but...
-requires_bar(static_cast<has_bar*>(b_pointer)); // Aww...
+void some_function () {
+    base * b_pointer = new derived;
+    uses_foo(dynamic_cast<has_foo*>(b_pointer)); // Wait, but...
+    uses_bar(dynamic_cast<has_bar*>(b_pointer)); // Aww...
+}
 ```
 
 Which leads to the "diamond of death",
@@ -261,7 +278,7 @@ struct int_foo
 };
 struct float_foo
 {
-    virtual float foo () { return 3.0; }
+    virtual float foo () { return 3.0f; }
     virtual void log () const;
 };
 ```
@@ -368,19 +385,21 @@ Compile-time is easy:
 
 ```cpp
 template <typename TrueType, typename FalseType, bool Selection>
-struct type_selector :
-    std::conditional<Selection, TrueType, FalseType>
-{};
+typename std::conditional<Selection, TrueType, FalseType>::type
+factory_function () {
+    return
+        typename std::conditional<Selection, TrueType, FalseType>::type();
+}
 
-using int_alias = typename type_selector<int, float, true>::type;
-using float_alias = typename type_selector<int, float, false>::type;
+int int_1 = factory_function<int, float, true>();
+float float_1 = factory_function<int, float, false>();
 ```
 
 Runtime is impossible (without type erasure):
 
 ```cpp
 template <typename TrueType, typename FalseType>
-auto type_selector (bool selection) -> /* ??? */
+auto factory_function (bool selection) -> /* ??? */
 { return /* ??? */; }
 ```
 
@@ -407,15 +426,20 @@ this:
 
 ```cpp
 // No coupling!
+// No virtual functions, kind of!
 struct foo { int value () const; }; 
 struct bar { int value () const; };
 
 // No templates!
-int value_of (/* magic type */ obj)
+int value_of (magic_type obj)
 { return obj.value(); }
 
-// Value semantics!
-assert(value_of(foo()) == value_of(bar()));
+void some_function () {
+    // Value semantics!
+    if (value_of(foo()) == value_of(bar())) {
+        /*...*/
+    }
+}
 ```
 
 ----
@@ -465,7 +489,7 @@ anything::anything (T t) :
 anything::anything (const anything & rhs) : handle_ (rhs.handle_->clone()) {}
 
 template <typename T>
-anything::anything & operator= (T t)
+anything & anything::operator= (T t)
 {
     anything temp(std::forward<T>(t));
     std::swap(temp, *this);
@@ -501,8 +525,7 @@ anything::handle_base* anything::handle<T>::clone () const
 `anything` in action
 
 ```cpp
-struct foo { int value () const; };
-...
+struct foo {};
 anything a;
 
 int i = 1; 
@@ -548,3 +571,4 @@ A: No, but it can hold anything with a copy constructor.
 </body>
 
 </html>
+
