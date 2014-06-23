@@ -1,0 +1,1 @@
+struct layout_geometry {};

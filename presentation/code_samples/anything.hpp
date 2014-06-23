@@ -19,8 +19,11 @@ struct anything
 
 // end-sample
 #if ANYTHING_WITH_A_VALUE
+// sample(value_forwarded_1)
+    // anything gets:
     int value () const
     { return handle_->value(); }
+// end-sample
 #endif
 // sample(anything_declaration)
     struct handle_base
@@ -29,7 +32,10 @@ struct anything
         virtual handle_base* clone () const = 0;
 // end-sample
 #if ANYTHING_WITH_A_VALUE
-        virtual int value () const = 0;
+// sample(value_forwarded_2)
+    // anything::handle_base gets:
+    virtual int value () const = 0;
+// end-sample
 #endif
 // sample(anything_declaration)
     };
@@ -41,8 +47,11 @@ struct anything
         virtual handle_base* clone () const;
 // end-sample
 #if ANYTHING_WITH_A_VALUE
-        virtual int value () const
-        { return value_.value(); }
+// sample(value_forwarded_3)
+    // anything::handle gets:
+    virtual int value () const
+    { return value_.value(); }
+// end-sample
 #endif
 // sample(anything_declaration)
         T value_;

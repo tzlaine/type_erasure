@@ -52,6 +52,12 @@
 - Those Other Solutions
 - Type Erasure
 
+----
+
+## A Quick Aside
+
+All the code you will see in this presentation compiles and runs.
+
 ====================
 
 # Part 1
@@ -362,8 +368,56 @@ this:
 
 Q: Can `anything` really hold anything?
 
-A: No, but it can hold anything with a copy constructor.
+A: No, but it can hold anything with a copy constructor.  It should really be
+called <!-- .element: class="fragment" data-fragment-index="2" -->`any_copyable`.
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+Ok, so how do we get back to this?
+
+%%wanted_interface%%
+
+----
+
+Easy -- just forward the calls to `value()`:
+
+%%value_forwarded_1%%
+
+%%value_forwarded_2%%
+
+%%value_forwarded_3%%
+
+----
+
+We can add any arbitrary API in the same fashion.  It's easy but repetitive to
+do so.  More on that in a bit.
+
+----
+
+Say we have two disjoint APIs we wish to support.
+
+One erased type for all widgets:
+
+%%widget_api%%
+
+And one for all objects that can be used in our layout system:
+
+%%layoutable_api%%
+
+----
+
+Here it is in use:
+
+%%disjoint_apis_in_use%%
+
+----
+
+Q: What about performance?
+
+A: It's complicated.
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
         </script>
       </section>
     </div>

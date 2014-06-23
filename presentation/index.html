@@ -52,6 +52,12 @@
 - Those Other Solutions
 - Type Erasure
 
+----
+
+## A Quick Aside
+
+All the code you will see in this presentation compiles and runs.
+
 ====================
 
 # Part 1
@@ -543,8 +549,115 @@ a = i_ptr;
 
 Q: Can `anything` really hold anything?
 
-A: No, but it can hold anything with a copy constructor.
+A: No, but it can hold anything with a copy constructor.  It should really be
+called <!-- .element: class="fragment" data-fragment-index="2" -->`any_copyable`.
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+Ok, so how do we get back to this?
+
+```cpp
+// No coupling!
+// No virtual functions, kind of!
+struct foo { int value () const; }; 
+struct bar { int value () const; };
+
+// No templates!
+int value_of (magic_type obj)
+{ return obj.value(); }
+
+void some_function () {
+    // Value semantics!
+    if (value_of(foo()) == value_of(bar())) {
+        /*...*/
+    }
+}
+```
+
+----
+
+Easy -- just forward the calls to `value()`:
+
+```cpp
+    // anything gets:
+    int value () const
+    { return handle_->value(); }
+```
+
+```cpp
+    // anything::handle_base gets:
+    virtual int value () const = 0;
+```
+
+```cpp
+    // anything::handle gets:
+    virtual int value () const
+    { return value_.value(); }
+```
+
+----
+
+We can add any arbitrary API in the same fashion.  It's easy but repetitive to
+do so.  More on that in a bit.
+
+----
+
+Say we have two disjoint APIs we wish to support.
+
+One erased type for all widgets:
+
+```cpp
+struct widget
+{
+    // some boilerplate ...
+    void render () const;
+    // more boilerplate ...
+};
+```
+
+And one for all objects that can be used in our layout system:
+
+```cpp
+struct layoutable
+{
+    // boilerplate ...
+    layout_geometry geometry () const;
+    // boilerplate ...
+};
+```
+
+----
+
+Here it is in use:
+
+```cpp
+struct button
+{
+    void render () const;
+    layout_geometry geometry () const;
+    void set_label ();
+    void set_image ();
+    // etc.
+};
+
+void do_layout (layoutable l);
+void render_widget (widget w);
+
+void some_function () {
+    button b;
+    do_layout(b);
+    render_widget(b);
+}
+```
+
+----
+
+Q: What about performance?
+
+A: It's complicated.
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
         </script>
       </section>
     </div>
