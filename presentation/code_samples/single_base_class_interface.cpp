@@ -19,8 +19,7 @@ struct derived : base
     { return 3.0f; }
 };
 
-void some_function ()
-{
+void some_function () {
     base * b_pointer = new derived;
     uses_foo(b_pointer);    // Yay!
     // uses_bar(b_pointer); // Aww...

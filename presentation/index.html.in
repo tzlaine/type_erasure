@@ -163,7 +163,6 @@ The inheritance mechanism gives us polymorphism, but we must either:
 - Limit ourselves to a single interface found in the base class:
 
 %%single_base_class_interface%%
-<!-- .element: class="stretch" -->
 
 ----
 
@@ -176,7 +175,7 @@ all the multiply inherited bases do not collide.
 
 ----
 
-- Use multiple inheritance below the base to bolt on multiple interfaces:
+- Use multiple inheritance to bolt on multiple interfaces:
 
 %%multiple_inheritance_below_base%%
 
@@ -300,21 +299,13 @@ Does not play well with runtime variation.
 
 Compile-time is easy:
 
-```cpp
-template <typename TrueType, typename FalseType, bool Selection>
-struct type_selector :
-    std::conditional<Selection, TrueType, FalseType>
-{};
-
-using int_alias = typename type_selector<int, float, true>::type;
-using float_alias = typename type_selector<int, float, false>::type;
-```
+%%compile_time_return_type%%
 
 Runtime is impossible (without type erasure):
 
 ```cpp
 template <typename TrueType, typename FalseType>
-auto type_selector (bool selection) -> /* ??? */
+auto factory_function (bool selection) -> /* ??? */
 { return /* ??? */; }
 ```
 
@@ -339,116 +330,33 @@ TMP, you're almost always stuck doing more TMP.
 Based on everything we've seen so far, we want an interface that works like
 this:
 
-```cpp
-// No coupling!
-struct foo { int value () const; }; 
-struct bar { int value () const; };
-
-// No templates!
-int value_of (/* magic type */ obj)
-{ return obj.value(); }
-
-// Value semantics!
-assert(value_of(foo()) == value_of(bar()));
-```
+%%wanted_interface%%
 
 ----
 
 ### Making magic happen
 
-```cpp
-struct anything
-{
-    anything () = default;
-    anything (const anything & rhs);
-    anything & operator= (const anything & rhs);
-    template <typename T> anything (T t);
-    template <typename T> anything & operator= (T t);
-
-    struct handle_base
-    {
-        virtual ~handle_base () {}
-        virtual handle_base* clone () const = 0;
-    };
-
-    template <typename T>
-    struct handle : handle_base
-    {
-        handle (T value);
-        virtual handle_base* clone () const;
-        T value_;
-    };
-
-    std::unique_ptr<handle_base> handle_;
-};
-```
+%%anything_declaration%%
 <!-- .element: class="stretch" -->
 
 ----
 
 `anything` definitions
 
-```cpp
-template <typename T>
-anything::anything (T t) :
-    handle_ (new handle<typename std::remove_reference<T>::type>(
-        std::forward<T>(t)
-    ))
-{}
-
-anything::anything (const anything & rhs) : handle_ (rhs.handle_->clone()) {}
-
-template <typename T>
-anything::anything & operator= (T t)
-{
-    anything temp(std::forward<T>(t));
-    std::swap(temp, *this);
-    return *this;
-}
-
-anything & anything::operator= (const anything & rhs)
-{
-    anything temp(rhs);
-    std::swap(temp, *this);
-    return *this;
-}
-```
+%%anything_definitions%%
 <!-- .element: class="stretch" -->
 
 ----
 
 `anything::handle` definitions
 
-```cpp
-template <typename T> 
-anything::handle<T>::handle (T value) :
-    value_ (std::move(value))
-{}
-
-template <typename T> 
-anything::handle_base* anything::handle<T>::clone () const
-{ return new handle(value_); }
-```
+%%anything_handle_definitions%%
 
 ----
 
 `anything` in action
 
-```cpp
-struct foo { int value () const; };
-...
-anything a;
-
-int i = 1; 
-a = i;
-
-a = 2.0;
-a = std::string("3");
-a = foo();
-
-int * i_ptr = &i;
-a = i_ptr;
-```
+%%anything_in_action%%
 
 ----
 

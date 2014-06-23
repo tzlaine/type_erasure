@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 add_subdirectory(code_samples)
 add_subdirectory(code_sampler)
 
-file(GLOB filenames ${CMAKE_CURRENT_SOURCE_DIR}/code_samples/*.cpp)
+file(GLOB filenames ${CMAKE_CURRENT_SOURCE_DIR}/code_samples/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/code_samples/*.hpp)
 
 add_custom_command(
     OUTPUT

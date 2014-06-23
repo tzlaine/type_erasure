@@ -14,8 +14,7 @@ foo_t * foo = foo_factory();
 foo_t * foo_factory ();
 void foo_user (foo_t * f);
 
-void some_function ()
-{
+void some_function () {
     foo_t * foo = foo_factory();
     foo_user(foo);
 

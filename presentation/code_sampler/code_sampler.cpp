@@ -22,8 +22,17 @@ void find_samples (const std::vector<std::string> & lines,
         } else if (comment_line && sample_pos != std::string::npos) {
             sample_pos += sample_str.size() + 1;
             std::string::size_type close_paren = line.find(")", sample_pos);
-            current_sample_name = line.substr(sample_pos, close_paren - sample_pos);
-            samples[current_sample_name] += "```cpp\n";
+            current_sample_name =
+                line.substr(sample_pos, close_paren - sample_pos);
+            std::string::size_type size_minus_3 =
+                samples[current_sample_name].size() - 3;
+            if (samples[current_sample_name].rfind("```") == size_minus_3) {
+                samples[current_sample_name].resize(
+                    samples[current_sample_name].size() - 3
+                );
+            } else {
+                samples[current_sample_name] += "```cpp\n";
+            }
         } else if (current_sample_name != "") {
             samples[current_sample_name] += line + '\n';
         }
