@@ -12,7 +12,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/reveal.css">
     <link rel="stylesheet" href="css/theme/default.css" id="theme">
 
     <link rel="stylesheet" href="lib/css/zenburn.css">
@@ -417,6 +417,16 @@ Q: What about performance?
 
 A: It's complicated.
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+## Erased types vs. Inheritance
+
+| Tables        | Are           | Cool  |
+| ------------- |:-------------:| -----:|
+| col 3 is      | right-aligned | $1600 |
+| col 2 is      | centered      |   $12 |
+| zebra stripes | are neat      |    $1 |
 
         </script>
       </section>
