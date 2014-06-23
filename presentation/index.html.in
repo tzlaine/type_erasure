@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Type Erasure CppCon 2014</title>
+
+    <meta name="author", content="T. Zachary Laine">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <script>
+      if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+      }
+    </script>
+
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section data-markdown=""
+               data-separator="^====+$"
+               data-vertical="^----+$"
+               data-notes="^Note:">
+        <script type="text/template">
+
+# Type Erasure
+## Solving Classic OOP Problems with an Elegant Design Pattern
+### Zach Laine, CppCon 2014
+
+====================
+
+## Outline
+- The Importance of Values
+- Why Polymorphism?
+- Those Other Solutions
+- Type Erasure
+
+====================
+
+# Part 1
+## The Importance of Values
+
+----
+
+Dealing with values instead of references has a couple of very nice benefits
+
+- Clear ownership/lifetime semantics
+- Equational reasoning
+
+----
+
+## Clear Semantics
+
+Who owns `foo`?
+
+%%pointer_factory_1%%
+
+Is this better?
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+%%shared_pointer_factory%%
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+That depends on whether you're partial to global state....
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+## Equational Reasoning
+
+%%pointer_factory_2%%
+
+With value types, you only have to reason about the values in the code front
+of you.
+
+With reference types, you must **simultaneously** reason about code that
+mutates the values elsewhere.
+
+====================
+
+# Part 2
+## Why Polymorphism?
+
+### Code reuse of course!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+Q: How does the author of this function intend its users to use it?
+
+%%nonpolymorphic_predicate%%
+
+A: Non-polymorphically.  You have to give me a <!-- .element: class="fragment" data-fragment-index="1" -->`some_t` object, or get sliced.
+Not terribly reusable with other types.
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+Q: How about this one?
+
+%%runtime_polymorphic_predicate%%
+
+A: Runtime-polymorphically.  You can give me any <!-- .element: class="fragment" data-fragment-index="1" -->
+`base_t`-derived object by
+reference.  The function is now more reusable, but you must use inheritance.
+Yuck!<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+Q: Or this?
+
+%%compile_time_polymorphic_predicate%%
+
+A: Compile-time-polymorphically.  You can give me any object whose type can be
+used to instantiated the template.  The function is now even more reusable,
+but you must use metaprogramming. Gross!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+Q: Is this an example of polymorphism?
+
+```cpp
+struct base { virtual ~base() {} };
+struct has_foo : base { virtual int foo () { return 42; } };
+struct derived : has_foo {};
+
+base * b_pointer = new derived;
+requires_foo(static_cast<has_foo*>(b_pointer));
+```
+
+A: No!  Polymorphism means using one type as if it were another type.  Here,
+we have to cast to make the type we have look like the type expected in the
+interface to <!-- .element: class="fragment" data-fragment-index="1" -->`foo()`.
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+====================
+
+# Part 3
+## Those Other Solutions
+
+- Inheritance-Based Runtime polymorphism
+- Template-based Compile-time polymorphism
+
+====================
+
+## (Problems with) Inheritance as Runtime Polymorphism
+
+----
+
+The inheritance mechanism gives us polymorphism, but we must either:
+
+- Limit ourselves to a single interface found in the base class:
+
+```cpp
+struct base
+{ virtual int foo () const = 0; };
+
+struct derived : base
+{
+    virtual int foo () const
+    { return 42; }
+
+    virtual float bar () const
+    { return 3.0f; }
+};
+
+base * b_pointer = new derived;
+requires_foo(b_pointer); // Yay!
+requires_bar(b_pointer); // Aww...
+```
+
+*OR*
+
+----
+
+- Use multiple inheritance to bolt on multiple interfaces:
+
+```cpp
+struct base { virtual ~base() {} };
+struct has_foo : base { virtual int foo () { return 42; } };
+struct has_bar : base { virtual float bar () { return 3.0f; } };
+struct derived : has_foo, has_bar {};
+
+base * b_pointer = new derived;
+requires_foo(static_cast<has_foo*>(b_pointer)); // Wait, but...
+requires_bar(static_cast<has_bar*>(b_pointer)); // Aww...
+```
+
+Which leads to the "diamond of death",
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+which leads to virtual inheritance,
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+which leads to fear,
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+which leads to anger,
+<!-- .element: class="fragment" data-fragment-index="4"-->
+
+... you get it.
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+More importantly, we have actually given up polymorphism by doing this; we
+must carry around the information that <!-- .element: class="fragment"
+data-fragment-index="6" --> `b_pointer` contains interfaces not found in
+`base`.
+
+
+----
+
+We cannot make classes from different class hierarchies conform to a common
+interface, because they have no common base to use when passing them.
+
+```cpp
+struct int_foo
+{
+    virtual int foo () { return 42; }
+    virtual void log () const;
+};
+struct float_foo
+{
+    virtual float foo () { return 3.0; }
+    virtual void log () const;
+};
+```
+
+Note that `int_foo` and `float_foo` both have a member
+
+`void log() const`.
+
+----
+
+So, we ditch code reuse in the case of logging:
+
+```cpp
+void log_to_terminal (const int_foo & loggee);
+void log_to_terminal (const float_foo & loggee);
+```
+
+Or we resort to ugly hacks:
+
+```cpp
+struct log_base { virtual void log () const; };
+struct int_foo : log_base {/*...*/}; 
+struct float_foo : log_base {/*...*/}; 
+void log_to_terminal (const log_base & loggee);
+```
+
+----
+
+We cannot easily separate interface and implementation without using multiple
+inheritance.
+
+----
+
+Virtual functions can be tricky to get right, especially in large class
+heirarchies.
+
+- We've all seen lots of these problems in real code.
+- C++11's `override` and `final` help
+- There is frequently a question of whether or not a given type's virtual
+  function implementation should call its base class's version of the same
+  function.
+
+----
+
+In addition to all the above limitations, we are limited in which interfaces
+we give to which types by our choice of base class(es).
+
+Inheritance imposes very tight coupling; it is not possible to have unrelated
+types with the same interfaces used interchangably.
+
+----
+
+We must always take parameters by reference to use runtime polymorphism.
+There go our nice benefits from value semantics.
+
+----
+
+### A Quick Case Study: Widgets and Layouts
+
+Widgets are UI elements (buttons, text boxes, etc.).
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+Layouts place widgets in the UI.
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+A layout can contain widgets.
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+A layout can contain sublayouts.
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+Using inheritance, you are all but locked in to giving layouts and widgets a
+common base,
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+... even though that makes no sense.
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+====================
+
+## (Problems with) Templates as Compile-time Polymorphism
+
+----
+
+### The Classic Problems
+
+- Metaprogramming requires a large body of knowledge about a large number of
+  obscure language rules, and even more obscure TMP-specific tricks.
+
+- Metaprogramming heavy code is hard to maintain.  This is true for experts,
+  but is moreso in a team of varying skill levels.
+
+- Metaprogramming might be simply impossible to use where you work (even if
+  you wanted to).
+
+- Compile times and object code size can get away from you if you're not
+  careful.
+
+----
+
+Does not play well with runtime variation.
+
+Compile-time is easy:
+
+```cpp
+template <typename TrueType, typename FalseType, bool Selection>
+struct type_selector :
+    std::conditional<Selection, TrueType, FalseType>
+{};
+
+using int_alias = typename type_selector<int, float, true>::type;
+using float_alias = typename type_selector<int, float, false>::type;
+```
+
+Runtime is impossible (without type erasure):
+
+```cpp
+template <typename TrueType, typename FalseType>
+auto type_selector (bool selection) -> /* ??? */
+{ return /* ??? */; }
+```
+
+----
+
+Because of the lack of easy runtime interoperability, once you decide to use
+TMP, you're almost always stuck doing more TMP.
+
+====================
+
+## There **must** be a better way!
+
+![](there_must_be_a_better_way.gif)
+
+====================
+
+# Part 4
+## Type Erasure
+
+----
+
+Based on everything we've seen so far, we want an interface that works like
+this:
+
+```cpp
+// No coupling!
+struct foo { int value () const; }; 
+struct bar { int value () const; };
+
+// No templates!
+int value_of (/* magic type */ obj)
+{ return obj.value(); }
+
+// Value semantics!
+assert(value_of(foo()) == value_of(bar()));
+```
+
+----
+
+### Making magic happen
+
+```cpp
+struct anything
+{
+    anything () = default;
+    anything (const anything & rhs);
+    anything & operator= (const anything & rhs);
+    template <typename T> anything (T t);
+    template <typename T> anything & operator= (T t);
+
+    struct handle_base
+    {
+        virtual ~handle_base () {}
+        virtual handle_base* clone () const = 0;
+    };
+
+    template <typename T>
+    struct handle : handle_base
+    {
+        handle (T value);
+        virtual handle_base* clone () const;
+        T value_;
+    };
+
+    std::unique_ptr<handle_base> handle_;
+};
+```
+<!-- .element: class="stretch" -->
+
+----
+
+`anything` definitions
+
+```cpp
+template <typename T>
+anything::anything (T t) :
+    handle_ (new handle<typename std::remove_reference<T>::type>(
+        std::forward<T>(t)
+    ))
+{}
+
+anything::anything (const anything & rhs) : handle_ (rhs.handle_->clone()) {}
+
+template <typename T>
+anything::anything & operator= (T t)
+{
+    anything temp(std::forward<T>(t));
+    std::swap(temp, *this);
+    return *this;
+}
+
+anything & anything::operator= (const anything & rhs)
+{
+    anything temp(rhs);
+    std::swap(temp, *this);
+    return *this;
+}
+```
+<!-- .element: class="stretch" -->
+
+----
+
+`anything::handle` definitions
+
+```cpp
+template <typename T> 
+anything::handle<T>::handle (T value) :
+    value_ (std::move(value))
+{}
+
+template <typename T> 
+anything::handle_base* anything::handle<T>::clone () const
+{ return new handle(value_); }
+```
+
+----
+
+`anything` in action
+
+```cpp
+struct foo { int value () const; };
+...
+anything a;
+
+int i = 1; 
+a = i;
+
+a = 2.0;
+a = std::string("3");
+a = foo();
+
+int * i_ptr = &i;
+a = i_ptr;
+```
+
+----
+
+Q: Can `anything` really hold anything?
+
+A: No, but it can hold anything with a copy constructor.
+<!-- .element: class="fragment" data-fragment-index="2" -->
+        </script>
+      </section>
+    </div>
+  </div>
+
+
+  <script src="lib/js/head.min.js"></script>
+  <script src="js/reveal.min.js"></script>
+  <script>
+    Reveal.initialize({
+        slideNumber: true,
+
+        dependencies: [
+            { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+            { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+            { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+            { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+            { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+            { src: 'plugin/math/math.js', async: true },
+            { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+    });
+  </script>
+</body>
+
+</html>
