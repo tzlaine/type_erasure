@@ -545,6 +545,11 @@ int * i_ptr = &i;
 a = i_ptr;
 ```
 
+Dymamic typing ("duck typing"), similar to that in Python.  Consider dumping
+scripting languages for this.
+
+That's not a joke.
+
 ----
 
 Q: Can `anything` really hold anything?
@@ -660,19 +665,129 @@ A: It's complicated.
 
 ----
 
-## Erased types vs. Inheritance
+### Pointer-based Inheritance vs. Erased Types
 
-| Tables        | Are           | Cool  |
-| ------------- |:-------------:| -----:|
-| col 3 is      | right-aligned | $1600 |
-| col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |
+Function call overhead is exactly the same.
+
+How about heap allocations?
+
+| Operation               | Inheritance | Simple Type Erasure |
+| ----------------------- |:-----------:|:-------------------:|
+| Construct               | Yes         | Yes                 |
+| Copy                    | No          | Yes                 |
+| Assign                  | No          | Yes                 |
+| "Clone"                 | Yes         | Yes (just a copy)   |
+| Get Alternate Interface | No*         | Yes                 |
+
+\* `dynamic_cast<>` is not free, and is not consistent with polymorphism.
+
+This chart also applies to copies of the underlying object.
+
+====================
+
+## Optimizing the Type Erasure Technique
+
+----
+
+### Step 1: Accept references
+
+Instead of always copying the given value, accept `std::reference_wrapper`s.
+
+----
+
+Replace the `handle` constructor with these:
+
+```cpp
+        template <typename U = T>
+        handle (T value,
+                typename std::enable_if<
+                    std::is_reference<U>::value
+                >::type* = 0) :
+            value_ (value)
+        {}
+
+        template <typename U = T>
+        handle (T value,
+                typename std::enable_if<
+                    !std::is_reference<U>::value,
+                    int
+                >::type* = 0) noexcept :
+            value_ (std::move(value))
+        {}
+```
+
+----
+
+Add this specialization:
+
+```cpp
+    template <typename T>
+    struct handle<std::reference_wrapper<T>> :
+        handle<T &>
+    {
+        handle (std::reference_wrapper<T> ref) :
+            handle<T &> (ref.get())
+        {}
+    };
+```
+
+----
+
+### Pointer-based Inheritance vs. Erased Types
+
+Allocations did not change.
+
+How about copies of the underlying object?
+
+| Op.            | Inh. | Simple TE | TE + ref  |
+| -------------- |:----:|:---------:|:---------:|
+| Construct      | Yes  | Yes       | No        |
+| Copy           | No   | Yes       | No        |
+| Assign         | No   | Yes       | No        |
+| "Clone"        | Yes  | Yes (copy)| No (copy) |
+| Alt. Interface | No*  | Yes       | No        |
+
+----
+
+### Step 2: Use a Copy-On-Write Wrapper
+
+Instead of always copying our type erased objects, only copy them when they
+are mutated.
+
+```cpp
+copy_on_write<widget> w_1(widget{button()});
+copy_on_write<widget> w_2 = w_1; // No copy.
+```
+
+----
+
+### Pointer-based Inheritance vs. Erased Types
+
+Allocations:
+
+| Op.            | Inh. | Simple TE | TE + COW  |
+| -------------- |:----:|:---------:|:---------:|
+| Construct      | 1    | 1         | 2         |
+| Copy           | 0    | 1         | 0         |
+| Assign         | 0    | 1         | 0         |
+| "Clone"        | 1    | 1   (copy)| 0  (copy) |
+| Alt. Interface | 0*   | 1         | 2         |
+
+----
+
+### Step 3: Integrate Copy-On-Write into Erased Types
+
+Remove one set of allocations on construction by applying copy-on-write
+directly to the `handle_` member.
+
+----
+
+TODO
 
         </script>
       </section>
     </div>
   </div>
-
 
   <script src="lib/js/head.min.js"></script>
   <script src="js/reveal.min.js"></script>

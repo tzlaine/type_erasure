@@ -55,26 +55,28 @@ private:
         virtual void render ( ) const = 0;
     };
 
-    template <typename T_T__>
+    template <typename T>
     struct handle :
         handle_base
     {
-        template <typename U_U__ = T_T__>
-        handle (T_T__ value,
+// sample(handle_ref_wrapper_ctors)
+        template <typename U = T>
+        handle (T value,
                 typename std::enable_if<
-                    std::is_reference<U_U__>::value
+                    std::is_reference<U>::value
                 >::type* = 0) :
             value_ (value)
         {}
 
-        template <typename U_U__ = T_T__>
-        handle (T_T__ value,
+        template <typename U = T>
+        handle (T value,
                 typename std::enable_if<
-                    !std::is_reference<U_U__>::value,
+                    !std::is_reference<U>::value,
                     int
                 >::type* = 0) noexcept :
             value_ (std::move(value))
         {}
+// end-sample
 
         virtual std::shared_ptr<handle_base> clone () const
         { return std::make_shared<handle>(value_); }
@@ -82,17 +84,19 @@ private:
         void render ( ) const
         { value_.render( ); }
 
-        T_T__ value_;
+        T value_;
     };
 
-    template <typename T_T__>
-    struct handle<std::reference_wrapper<T_T__>> :
-        handle<T_T__ &>
+// sample(ref_wrapper_specialization)
+    template <typename T>
+    struct handle<std::reference_wrapper<T>> :
+        handle<T &>
     {
-        handle (std::reference_wrapper<T_T__> ref) :
-            handle<T_T__ &> (ref.get())
+        handle (std::reference_wrapper<T> ref) :
+            handle<T &> (ref.get())
         {}
     };
+// end-sample
 
     const handle_base & read () const
     { return *handle_; }
