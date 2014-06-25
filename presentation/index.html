@@ -768,6 +768,9 @@ copy_on_write<widget> w_2 = w_1;    // No copy.
 widget & mutable_w_2 = w_2.write(); // Copy happens here.
 ```
 
+A nice side benefit of using COW is thread safety for the copy-on-write
+values.
+
 ----
 
 ### Pointer-based Inheritance vs. Erased Types
@@ -779,7 +782,7 @@ Allocations:
 | Construct      | 1    | 1         | 2         |
 | Copy           | 0    | 1         | 0         |
 | Assign         | 0    | 1         | 0         |
-| "Clone"        | 1    | 1   (copy)| 0  (copy) |
+| "Clone"        | 1    | 1 (copy)  | 0 (copy)  |
 | Alt. Interface | 0*   | 1         | 2         |
 
 ----
@@ -789,10 +792,36 @@ Allocations:
 Remove one set of allocations on construction by applying copy-on-write
 directly to the `handle_` member.
 
+```cpp
+widget w_1(widget{button()}); // Only 1 allocation here.
+widget w_2 = w_1;             // No copy.
+```
+
+Copies only happen when a non-const member function is called.
+
+----
+
+### Pointer-based Inheritance vs. Erased Types
+
+Allocations:
+
+| Operation      | Inh. | Simple TE | TE w/COW  |
+| -------------- |:----:|:---------:|:---------:|
+| Construct      | 1    | 1         | 1         |
+| Copy           | 0    | 1         | 0         |
+| Assign         | 0    | 1         | 0         |
+| "Clone"        | 1    | 1 (copy)  | 0 (copy)  |
+| Alt. Interface | 0*   | 1         | 1         |
+
+----
+
+### Step 4: Apply the Small Object Optimization
+
+Of course!  Now all we need to do is supply our own v-table....
+
 ----
 
 TODO
-
         </script>
       </section>
     </div>
