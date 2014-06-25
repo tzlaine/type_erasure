@@ -1,5 +1,6 @@
 #include <file_utils.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <map>
 #include <vector>
