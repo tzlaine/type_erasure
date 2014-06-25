@@ -41,6 +41,8 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     reset_allocations();
 #endif
 
+    std::cout << "sizeof(any_printable) = " << sizeof(any_printable) << "\n";
+
 #define ECHO(expr)                                                      \
     do {                                                                \
         std::cout << #expr << ";\nap.print() = ";                       \
