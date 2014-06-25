@@ -343,14 +343,12 @@ this:
 ### Making magic happen
 
 %%anything_declaration%%
-<!-- .element: class="stretch" -->
 
 ----
 
 `anything` definitions
 
 %%anything_definitions%%
-<!-- .element: class="stretch" -->
 
 ----
 
@@ -415,7 +413,6 @@ And one for all objects that can be used in our layout system:
 Here it is in use:
 
 %%disjoint_apis_in_use%%
-<!-- .element: class="stretch" -->
 
 ----
 
