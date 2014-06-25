@@ -43,14 +43,6 @@ public:
         read().print();
     }
 
-#if 0 // non-const example
-    void foo ()
-    {
-        assert(handle_);
-        write().foo();
-    }
-#endif
-
 private:
     struct handle_base
     {
