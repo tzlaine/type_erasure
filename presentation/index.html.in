@@ -451,6 +451,8 @@ This chart also applies to copies of the underlying object.
 
 Instead of always copying the given value, accept `std::reference_wrapper`s.
 
+%%type_erasure_plus_ref_wrapper%%
+
 ----
 
 Replace the `handle` constructor with these:

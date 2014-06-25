@@ -695,6 +695,12 @@ This chart also applies to copies of the underlying object.
 
 Instead of always copying the given value, accept `std::reference_wrapper`s.
 
+```cpp
+button b;
+widget ref_widget(std::ref(b));   // Underlying object
+widget cref_widget(std::cref(b)); // not copied.
+```
+
 ----
 
 Replace the `handle` constructor with these:
@@ -758,7 +764,7 @@ are mutated.
 
 ```cpp
 copy_on_write<widget> w_1(widget{button()});
-copy_on_write<widget> w_2 = w_1; // No copy.
+copy_on_write<widget> w_2 = w_1;    // No copy.
 widget & mutable_w_2 = w_2.write(); // Copy happens here.
 ```
 
