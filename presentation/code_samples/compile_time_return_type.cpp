@@ -9,14 +9,14 @@ factory_function () {
         typename std::conditional<Selection, TrueType, FalseType>::type();
 }
 
-int int_1 = factory_function<int, float, true>();
-float float_1 = factory_function<int, float, false>();
+int an_int = factory_function<int, float, true>();
+float a_float = factory_function<int, float, false>();
 // end-sample
 
 int main ()
 {
-    static_assert(std::is_same<decltype(int_1), int>::value, "");
-    static_assert(std::is_same<decltype(float_1), float>::value, "");
+    static_assert(std::is_same<decltype(an_int), int>::value, "");
+    static_assert(std::is_same<decltype(a_float), float>::value, "");
 
     return 0;
 }

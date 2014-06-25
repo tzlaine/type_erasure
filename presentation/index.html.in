@@ -374,7 +374,7 @@ That's not a joke.
 Q: Can `anything` really hold anything?
 
 A: No, but it can hold anything with a copy constructor.  It should really be
-called <!-- .element: class="fragment" data-fragment-index="2" -->`any_copyable`.
+called <!-- .element: class="fragment" data-fragment-index="2" -->`copyable`.
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
@@ -415,6 +415,7 @@ And one for all objects that can be used in our layout system:
 Here it is in use:
 
 %%disjoint_apis_in_use%%
+<!-- .element: class="stretch" -->
 
 ----
 
@@ -473,7 +474,7 @@ Allocations did not change.
 
 How about copies of the underlying object?
 
-| Op.            | Inh. | Simple TE | TE + ref  |
+| Operation      | Inh. | Simple TE | TE + ref  |
 | -------------- |:----:|:---------:|:---------:|
 | Construct      | Yes  | Yes       | No        |
 | Copy           | No   | Yes       | No        |
@@ -496,7 +497,7 @@ are mutated.
 
 Allocations:
 
-| Op.            | Inh. | Simple TE | TE + COW  |
+| Operation      | Inh. | Simple TE | TE + COW  |
 | -------------- |:----:|:---------:|:---------:|
 | Construct      | 1    | 1         | 2         |
 | Copy           | 0    | 1         | 0         |

@@ -11,8 +11,12 @@ struct button
     // etc.
 };
 
-void do_layout (layoutable l);
-void render_widget (widget w);
+void do_layout (layoutable l) {
+    layout_geometry geometry = l.geometry();
+    /* use geometry... */
+}
+void render_widget (widget w)
+{ w.render(); }
 
 void some_function () {
     button b;
@@ -32,12 +36,6 @@ void button::set_label ()
 
 void button::set_image ()
 {}
-
-void do_layout (layoutable l)
-{ l.geometry(); }
-
-void render_widget (widget w)
-{ w.render(); }
 
 int main ()
 {

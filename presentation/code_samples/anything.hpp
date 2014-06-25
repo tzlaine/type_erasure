@@ -48,7 +48,7 @@ struct anything
 // end-sample
 #if ANYTHING_WITH_A_VALUE
 // sample(value_forwarded_3)
-    // anything::handle gets:
+    // anything::handle<T> gets:
     virtual int value () const
     { return value_.value(); }
 // end-sample
