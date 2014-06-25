@@ -1,5 +1,4 @@
 #include <iostream>
-#include <string>
 #include <vector>
 
 
@@ -43,19 +42,19 @@ struct bye_printable
 };
 
 struct large_printable :
-    std::vector<std::string>
+    std::vector<double>
 {
     large_printable () :
-        std::vector<std::string> (1000, std::string(1000, ' '))
+        std::vector<double> (1024 * 1024)
     {}
 
     large_printable (const large_printable & rhs) :
-        std::vector<std::string> (rhs)
+        std::vector<double> (rhs)
     {}
 
     large_printable & operator= (const large_printable & rhs)
     {
-        static_cast<std::vector<std::string> &>(*this) = rhs;
+        static_cast<std::vector<double> &>(*this) = rhs;
         return *this;
     }
 
