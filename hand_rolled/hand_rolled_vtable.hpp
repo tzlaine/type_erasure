@@ -1,5 +1,5 @@
-#ifndef HAND_ROLLED_INCLUDED__
-#define HAND_ROLLED_INCLUDED__
+#ifndef HAND_ROLLED_VTABLE_INCLUDED__
+#define HAND_ROLLED_VTABLE_INCLUDED__
 
 #include <printable_types.hpp>
 
