@@ -17,13 +17,13 @@ inline std::size_t& allocations ()
 inline void reset_allocations ()
 { allocations() = 0; }
 
-inline void * operator new (std::size_t size)
+void * operator new (std::size_t size)
 {
     ++allocations();
     return malloc(size);
 }
 
-inline void * operator new[] (std::size_t size)
+void * operator new[] (std::size_t size)
 {
     ++allocations();
     return malloc(size);
