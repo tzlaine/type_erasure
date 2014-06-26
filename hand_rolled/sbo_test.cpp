@@ -2,7 +2,7 @@
 
 #include <copy_on_write.hpp>
 
-#include "hand_rolled_soo.hpp"
+#include "hand_rolled_sbo.hpp"
 
 
 #define BOOST_TEST_MODULE TypeErasure
