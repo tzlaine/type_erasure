@@ -38,7 +38,6 @@ get_tokens (CXTranslationUnit tu, CXCursor cursor)
     CXSourceRange range = clang_getCursorExtent(cursor);
     CXSourceLocation start = clang_getRangeStart(range);
     CXSourceLocation end = clang_getRangeEnd(range);
-    unsigned int start_offset, end_offset;
 
     std::pair<CXToken*, unsigned int> retval(0, 0);
     clang_tokenize(tu, range, &retval.first, &retval.second);
