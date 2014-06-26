@@ -534,9 +534,7 @@ Allocations:
 
 ----
 
-### Step 4: Apply the Small Object Optimization
-
-Of course!  Now all we need to do is supply our own v-table....
+### Step 4: Apply the Small Buffer Optimization
 
 ----
 
