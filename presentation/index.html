@@ -678,7 +678,6 @@ How about heap allocations?
 | Construct               | Yes         | Yes                 |
 | Copy                    | No          | Yes                 |
 | Assign                  | No          | Yes                 |
-| "Clone"                 | Yes         | Yes (just a copy)   |
 | Get Alternate Interface | No*         | Yes                 |
 
 \* `dynamic_cast<>` is not free, and is not consistent with polymorphism.
@@ -752,7 +751,6 @@ How about copies of the underlying object?
 | Construct      | Yes  | Yes       | No        |
 | Copy           | No   | Yes       | No        |
 | Assign         | No   | Yes       | No        |
-| "Clone"        | Yes  | Yes (copy)| No (copy) |
 | Alt. Interface | No*  | Yes       | No        |
 
 ----
@@ -782,7 +780,6 @@ Allocations:
 | Construct      | 1    | 1         | 2         |
 | Copy           | 0    | 1         | 0         |
 | Assign         | 0    | 1         | 0         |
-| "Clone"        | 1    | 1 (copy)  | 0 (copy)  |
 | Alt. Interface | 0*   | 1         | 2         |
 
 ----
@@ -810,7 +807,6 @@ Allocations:
 | Construct      | 1    | 1         | 1         |
 | Copy           | 0    | 1         | 0         |
 | Assign         | 0    | 1         | 0         |
-| "Clone"        | 1    | 1 (copy)  | 0 (copy)  |
 | Alt. Interface | 0*   | 1         | 1         |
 
 ----
@@ -835,7 +831,6 @@ Allocations for small<sup>&dagger;</sup>/large objects:
 | Construct      | 1/1  | 1/1       | 0/1       |
 | Copy           | 0/0  | 1/1       | 0/1       |
 | Assign         | 0/0  | 1/1       | 0/1       |
-| "Clone"        | 1/1  | 1/1 (copy)| 0/1 (copy)|
 | Alt. Interface | 0/0* | 1/1       | 0/1       |
 
 <sup>&dagger;</sup> `std::referece_wrapper` is always small.
@@ -863,12 +858,28 @@ Allocations for small<sup>&dagger;</sup>/large objects:
 | Construct      | 1/1  | 1/1       | 0/1         |
 | Copy           | 0/0  | 1/1       | 0/0         |
 | Assign         | 0/0  | 1/1       | 0/0         |
-| "Clone"        | 1/1  | 1/1 (copy)| 0/0 (copy)  |
 | Alt. Interface | 0/0* | 1/1       | 0/1         |
 
 <sup>&dagger;</sup> Again, `std::referece_wrapper` is always small.
 
 Copies only happen when a non-const member function is called.
+
+====================
+
+What have we gained?
+
+- Vaue semantics
+- Never writing `new` or `delete`
+- Ability to bind objects to interfaces for no runtime cost (when using refs)
+- Ability to bind objects to interfaces never seen before
+- TODO
+
+----
+
+What have we lost?
+
+- Simplicity of implementation
+- TODO
 
         </script>
       </section>
