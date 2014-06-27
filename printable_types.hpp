@@ -58,8 +58,15 @@ struct large_printable :
         return *this;
     }
 
-    large_printable (large_printable && rhs) = default;
-    large_printable & operator= (large_printable && rhs) = default;
+    large_printable (large_printable && rhs) :
+        std::vector<double> (std::move(static_cast<std::vector<double> &>(rhs)))
+    {}
+
+    large_printable & operator= (large_printable && rhs)
+    {
+        static_cast<std::vector<double> &>(*this) = std::move(rhs);
+        return *this;
+    }
 
     void print () const
     { std::cout << "I'm expensive to copy.\n"; }

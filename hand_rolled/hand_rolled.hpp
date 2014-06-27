@@ -3,6 +3,7 @@
 
 #include <printable_types.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -11,6 +12,10 @@
 #include <utility>
 #include <vector>
 
+
+#ifdef _MSC_VER
+#define noexcept
+#endif
 
 // Variation 1: Accept std::reference_wrapper<>.
 #ifndef ACCEPT_REFERENCE_WRAPPER
@@ -36,7 +41,9 @@ public:
         handle_ (rhs.handle_->clone())
     {}
 
-    any_printable (any_printable && rhs) noexcept = default;
+    any_printable (any_printable && rhs) noexcept :
+        handle_ (std::move(rhs.handle_))
+    {}
 
     // Assignment
     template <typename T>
@@ -54,7 +61,11 @@ public:
         return *this;
     }
 
-    any_printable & operator= (any_printable && rhs) noexcept = default;
+    any_printable & operator= (any_printable && rhs) noexcept
+    {
+        handle_ = std::move(rhs.handle_);
+        return *this;
+    }
 
     // Public interface
     void print () const

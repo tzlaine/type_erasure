@@ -8,6 +8,9 @@
 #include <utility>
 
 
+#ifdef _MSC_VER
+#define noexcept
+#endif
 
 // sample(widget_api)
 struct widget

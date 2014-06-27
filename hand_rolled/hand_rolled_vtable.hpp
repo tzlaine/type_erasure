@@ -13,6 +13,10 @@
 #include <vector>
 
 
+#ifdef _MSC_VER
+#define noexcept
+#endif
+
 // Variation 1: Accept std::reference_wrapper<>.
 #ifndef ACCEPT_REFERENCE_WRAPPER
 #define ACCEPT_REFERENCE_WRAPPER 1
@@ -29,7 +33,7 @@ private:
 
     template <typename ValueType>
     static void delete_impl (void * value)
-    { return delete static_cast<ValueType*>(value); }
+    { delete static_cast<ValueType*>(value); }
 
     using delete_wrapper_type = void (*) (void *);
 
@@ -55,11 +59,11 @@ public:
 
     template <typename T>
     any_printable (T value) :
-        vtable_ {
+        vtable_ ({
             (void_function_type)(&clone_impl<T>),
             (void_function_type)(&delete_impl<T>),
             (void_function_type)(&print_wrapper<T>::exec)
-        },
+        }),
         get_value_ptr_ (&get_value_ptr<sizeof(value_) < sizeof(T)>),
         value_ (0)
     {

@@ -13,6 +13,10 @@
 #include <vector>
 
 
+#ifdef _MSC_VER
+#define noexcept
+#endif
+
 class any_printable
 {
 public:
