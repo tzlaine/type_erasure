@@ -29,7 +29,7 @@ struct anything
     struct handle_base
     {
         virtual ~handle_base () {}
-        virtual handle_base* clone () const = 0;
+        virtual handle_base * clone () const = 0;
 // end-sample
 #if ANYTHING_WITH_A_VALUE
 // sample(value_forwarded_2)
@@ -44,7 +44,7 @@ struct anything
     struct handle : handle_base
     {
         handle (T value);
-        virtual handle_base* clone () const;
+        virtual handle_base * clone () const;
 // end-sample
 #if ANYTHING_WITH_A_VALUE
 // sample(value_forwarded_3)
@@ -96,7 +96,7 @@ anything::handle<T>::handle (T value) :
 {}
 
 template <typename T> 
-anything::handle_base* anything::handle<T>::clone () const
+anything::handle_base * anything::handle<T>::clone () const
 { return new handle(value_); }
 // end-sample
 

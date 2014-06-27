@@ -78,7 +78,7 @@ private:
     struct handle_base
     {
         virtual ~handle_base () {}
-        virtual handle_base* clone () const = 0;
+        virtual handle_base * clone () const = 0;
 
         // Public interface
         virtual void print () const = 0;
@@ -93,7 +93,7 @@ private:
         handle (T value,
                 typename std::enable_if<
                     std::is_reference<U>::value
-                >::type* = 0) :
+                >::type * = 0) :
             value_ (value)
         {}
 
@@ -102,7 +102,7 @@ private:
                 typename std::enable_if<
                     !std::is_reference<U>::value,
                     int
-                >::type* = 0) noexcept :
+                >::type * = 0) noexcept :
             value_ (std::move(value))
         {}
 #else
@@ -111,7 +111,7 @@ private:
         {}
 #endif
 
-        virtual handle_base* clone () const
+        virtual handle_base * clone () const
         { return new handle(value_); }
 
         // Public interface

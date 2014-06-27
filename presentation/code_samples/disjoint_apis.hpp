@@ -67,7 +67,7 @@ private:
         handle (T value,
                 typename std::enable_if<
                     std::is_reference<U>::value
-                >::type* = 0) :
+                >::type * = 0) :
             value_ (value)
         {}
 
@@ -76,7 +76,7 @@ private:
                 typename std::enable_if<
                     !std::is_reference<U>::value,
                     int
-                >::type* = 0) noexcept :
+                >::type * = 0) noexcept :
             value_ (std::move(value))
         {}
 // end-sample
@@ -173,7 +173,7 @@ private:
         handle (T_T__ value,
                 typename std::enable_if<
                     std::is_reference<U_U__>::value
-                >::type* = 0) :
+                >::type * = 0) :
             value_ (value)
         {}
 
@@ -182,7 +182,7 @@ private:
                 typename std::enable_if<
                     !std::is_reference<U_U__>::value,
                     int
-                >::type* = 0) noexcept :
+                >::type * = 0) noexcept :
             value_ (std::move(value))
         {}
 

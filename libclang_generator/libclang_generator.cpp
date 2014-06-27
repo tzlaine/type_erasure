@@ -26,7 +26,7 @@ struct client_data
     // keyword, and function name
     std::vector<std::array<std::string, 4>> member_functions;
     bool printed_headers;
-    const char* filename;
+    const char * filename;
     bool include_guarded;
     std::string form;
     std::string headers;
@@ -62,10 +62,10 @@ void print_tokens (CXTranslationUnit tu,
         tokens.second && tokens_from_include_directive ?
         tokens.second - 1 :
         tokens.second;
-    const char* prev_token = 0;
+    const char * prev_token = 0;
     for (unsigned int i = 0; i < num_tokens; ++i) {
         CXString spelling = clang_getTokenSpelling(tu, tokens.first[i]);
-        const char* token = clang_getCString(spelling);
+        const char * token = clang_getCString(spelling);
         if (i && prev_token != open_angle && token != close_angle)
             std::cout << " ";
         std::cout << token;
@@ -97,7 +97,7 @@ std::string indent (const client_data & data)
 }
 
 void print_lines (const client_data & data,
-                  const char** lines,
+                  const char ** lines,
                   std::size_t num_lines)
 {
     for (unsigned int i = 0; i < num_lines; ++i) {
@@ -132,7 +132,7 @@ std::string struct_prefix (const client_data & data, CXCursor struct_cursor)
     for (unsigned int i = 0; i < tokens.second; ++i) {
         CXString spelling = clang_getTokenSpelling(data.tu, tokens.first[i]);
 
-        const char* c_str = clang_getCString(spelling);
+        const char * c_str = clang_getCString(spelling);
 
         if (c_str == open_brace)
             break;
@@ -166,7 +166,7 @@ member_params (const client_data & data, CXCursor cursor)
         CXString spelling =
             clang_getTokenSpelling(data.tu, tokens.first[i]);
 
-        const char* c_str = clang_getCString(spelling);
+        const char * c_str = clang_getCString(spelling);
 
         if (c_str == open_brace || c_str == semicolon)
             break;
@@ -187,12 +187,12 @@ member_params (const client_data & data, CXCursor cursor)
         args += clang_getCString(clang_getCursorSpelling(arg_cursor));
     }
 
-    const char* return_str =
+    const char * return_str =
         clang_getCursorResultType(cursor).kind == CXType_Void ?
         "" :
         "return ";
 
-    const char* function_name =
+    const char * function_name =
         clang_getCString(clang_getCursorSpelling(cursor));
 
     free_tokens(data.tu, tokens);
@@ -337,7 +337,7 @@ visit_preprocessor_defines (CXCursor cursor, CXCursor parent, CXClientData data_
     if (!from_main_file) {
         return CXChildVisit_Continue;
     } else if (kind == CXCursor_MacroDefinition) {
-        const char* guard = clang_getCString(clang_getCursorSpelling(cursor));
+        const char * guard = clang_getCString(clang_getCursorSpelling(cursor));
         std::cout << "#ifndef " << guard << "\n"
                   << "#define " << guard << "\n"
                   << "\n";
@@ -416,7 +416,7 @@ CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange r
     return CXVisit_Continue;
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char * argv[])
 {
     std::string binary_path = argv[0];
     binary_path.resize(binary_path.find_last_of("/\\") + 1);
@@ -478,7 +478,7 @@ int main (int argc, char* argv[])
         CXTranslationUnit_DetailedPreprocessingRecord
     );
 
-    const char* filename =
+    const char * filename =
         clang_getCString(clang_getTranslationUnitSpelling(tu));
 
     CXFile file = clang_getFile(tu, filename);
