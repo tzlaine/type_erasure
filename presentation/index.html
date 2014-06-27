@@ -56,7 +56,8 @@
 
 ## A Quick Aside
 
-All the code you will see in this presentation compiles and runs.
+All the code you will see in this presentation compiles and works as
+advertized.
 
 ====================
 
@@ -491,7 +492,9 @@ anything::anything (T t) :
     ))
 {}
 
-anything::anything (const anything & rhs) : handle_ (rhs.handle_->clone()) {}
+anything::anything (const anything & rhs) :
+    handle_ (rhs.handle_->clone())
+{}
 
 template <typename T>
 anything & anything::operator= (T t)
@@ -791,8 +794,8 @@ Remove one set of allocations on construction by applying copy-on-write
 directly to the `handle_` member.
 
 ```cpp
-widget w_1(widget{button()}); // Only 1 allocation here.
-widget w_2 = w_1;             // No copy.
+widget w_1 = button(); // Only 1 allocation here.
+widget w_2 = w_1;      // No copy.
 ```
 
 Copies only happen when a non-const member function is called.
@@ -827,7 +830,7 @@ anything large = big_array;         // Allocation required here.
 
 Allocations for small<sup>&dagger;</sup>/large objects:
 
-| Operation      | Inh. | Simple TE | TE w/COW  |
+| Operation      | Inh. | Simple TE | TE w/SBO  |
 | -------------- |:----:|:---------:|:---------:|
 | Construct      | 1/1  | 1/1       | 0/1       |
 | Copy           | 0/0  | 1/1       | 0/1       |

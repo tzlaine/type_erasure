@@ -69,7 +69,9 @@ anything::anything (T t) :
     ))
 {}
 
-anything::anything (const anything & rhs) : handle_ (rhs.handle_->clone()) {}
+anything::anything (const anything & rhs) :
+    handle_ (rhs.handle_->clone())
+{}
 
 template <typename T>
 anything & anything::operator= (T t)
@@ -97,6 +99,5 @@ template <typename T>
 anything::handle_base* anything::handle<T>::clone () const
 { return new handle(value_); }
 // end-sample
-
 
 #endif

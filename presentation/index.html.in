@@ -56,7 +56,8 @@
 
 ## A Quick Aside
 
-All the code you will see in this presentation compiles and runs.
+All the code you will see in this presentation compiles and works as
+advertized.
 
 ====================
 
@@ -541,7 +542,7 @@ Allocations:
 
 Allocations for small<sup>&dagger;</sup>/large objects:
 
-| Operation      | Inh. | Simple TE | TE w/COW  |
+| Operation      | Inh. | Simple TE | TE w/SBO  |
 | -------------- |:----:|:---------:|:---------:|
 | Construct      | 1/1  | 1/1       | 0/1       |
 | Copy           | 0/0  | 1/1       | 0/1       |
