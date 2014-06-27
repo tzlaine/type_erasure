@@ -148,13 +148,19 @@ private:
     {
         handle_base * retval = nullptr;
         typedef typename std::remove_reference<T>::type handle_t;
-        const bool too_big = sizeof(buf) < sizeof(handle<handle_t, false>);
-        if (too_big) {
-            retval = new handle<handle_t, true>(std::forward<T>(value));
+        void * buf_ptr = &buf;
+        std::size_t buf_size = sizeof(buf);
+        buf_ptr = std::align(
+            alignof(handle<handle_t, false>),
+            sizeof(handle<handle_t, false>),
+            buf_ptr,
+            buf_size
+        );
+        if (buf_ptr) {
+            new (buf_ptr) handle<handle_t, false>(std::forward<T>(value));
+            retval = static_cast<handle_base *>(buf_ptr);
         } else {
-            new (&buf) handle<handle_t, false>(std::forward<T>(value));
-            retval =
-                static_cast<handle_base *>(static_cast<void *>(&buf));
+            retval = new handle<handle_t, true>(std::forward<T>(value));
         }
         return retval;
     }
