@@ -64,11 +64,15 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     ECHO(large_printable large; any_printable tmp = large; any_printable ap = tmp);
     ECHO(bye_printable bye; any_printable tmp = bye; any_printable ap = tmp);
 
-#if 0 // Does not compile!
-    ECHO(hi_printable hi; any_printable ap; ap = hi);
-    ECHO(large_printable large; any_printable ap; ap = large);
-    ECHO(bye_printable bye; any_printable ap; ap = bye);
-#endif
+#define UNSUPPORTED(expr)                                               \
+    do {                                                                \
+        std::cout << "NOT SUPPORTED: " << #expr << ";\n\n";             \
+    } while (false)
+
+    // Does not compile!
+    UNSUPPORTED(hi_printable hi; any_printable ap; ap = hi);
+    UNSUPPORTED(large_printable large; any_printable ap; ap = large);
+    UNSUPPORTED(bye_printable bye; any_printable ap; ap = bye);
 
     ECHO(const hi_printable hi{}; any_printable ap(hi));
     ECHO(const large_printable large{}; any_printable ap(large));
@@ -82,11 +86,12 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     ECHO(const large_printable large{}; any_printable tmp = large; any_printable ap = tmp);
     ECHO(const bye_printable bye{}; any_printable tmp = bye; any_printable ap = tmp);
 
-#if 0 // Does not compile!
-    ECHO(const hi_printable hi{}; any_printable ap; ap = hi);
-    ECHO(const large_printable large{}; any_printable ap; ap = large);
-    ECHO(const bye_printable bye{}; any_printable ap; ap = bye);
-#endif
+    // Does not compile!
+    UNSUPPORTED(const hi_printable hi{}; any_printable ap; ap = hi);
+    UNSUPPORTED(const large_printable large{}; any_printable ap; ap = large);
+    UNSUPPORTED(const bye_printable bye{}; any_printable ap; ap = bye);
+
+#undef UNSUPPORTED
 
     ECHO(any_printable ap(hi_printable{}));
     ECHO(any_printable ap(large_printable{}));
