@@ -238,7 +238,7 @@ Virtual functions can be tricky to get right, especially in large class
 heirarchies.
 
 - We've all seen lots of these problems in real code.
-- C++11's `override` and `final` help
+- C++11's `override` and `final` help.
 - There is frequently a question of whether or not a given type's virtual
   function implementation should call its base class's version of the same
   function.
@@ -479,6 +479,8 @@ How about copies of the underlying object?
 | Assign         | No   | Yes       | No        |
 | Alt. Interface | No*  | Yes       | No        |
 
+All versions discussed hereafter include support for `std::reference_wrapper`.
+
 ----
 
 ### Step 2: Use a Copy-On-Write Wrapper
@@ -488,8 +490,7 @@ are mutated.
 
 %%type_erasure_plus_cow_wrapper_usage%%
 
-A nice side benefit of using COW is thread safety for the copy-on-write
-values.
+A nice benefit of using copy-on-write is thread safety.
 
 ----
 
@@ -572,23 +573,112 @@ Allocations for small<sup>&dagger;</sup>/large objects:
 
 Copies only happen when a non-const member function is called.
 
+----
+
+The final implementation is a bit long to show here.
+
 ====================
 
-What have we gained?
+## A Quick Review
 
-- Vaue semantics
-- Never writing `new` or `delete`
-- Ability to bind objects to interfaces for no runtime cost (when using refs)
-- Ability to bind objects to interfaces never seen before
-- TODO
-
-----
+What have we gained versus using inheritance?
 
 What have we lost?
 
-- Simplicity of implementation
-- TODO
+----
 
+### Gains
+
+- Vaue semantics
+
+- Never writing `new` or `delete`
+
+- Ability to bind types to interfaces never seen at the time of the types'
+  writing, including multiple interfaces
+
+- Thread safety via copy-on-write
+
+- Free "deep" copy operations
+
+- Elision of heap allocations for small types and references
+
+----
+
+### Losses
+
+- Simplicity of implementation
+
+- The free "deep" copies and thread safety come at the cost of copies when
+  values are mutated
+
+====================
+
+## Another Option: Boost.TypeErasure
+
+Boost.TypeErasure is the most robust library-based type erasure solution to
+date.
+
+- Uses metapgrogramming-based explicit v-table construction.
+- Supports casts directly to the held type, &agrave; la Boost.Any.
+- Supports free-function requirements.
+- Supports operator requirements.
+- Supports associated type requirements.
+- Supports concept maps.
+
+----
+
+An example from the online docs:
+
+```cpp
+any<
+    mpl::vector<
+        copy_constructible<>,
+        typeid_<>,
+        incrementable<>,
+        ostreamable<>
+    >
+> x(10);
+++x;
+std::cout << x << std::endl; // prints 11
+```
+
+----
+
+An example of an erased type with a member function:
+
+```cpp
+BOOST_TYPE_ERASURE_MEMBER((has_push_back), push_back, 1)
+
+void append_many(any<has_push_back<void(int)>, _self&> container) {
+    for(int i = 0; i < 10; ++i)
+        container.push_back(i);
+}
+```
+
+----
+
+### Caveats
+
+- The per-object v-table can create large objects.
+- All the metaprogramming can contribute to long compile times.
+- The error messages will make your eyes bleed.
+- The small buffer optimization is not supported. 
+- Writing `const` member function requirements is not straightforward.
+- Assignment after construction is not supported:
+
+```cpp
+any</*...*/> x(10);
+x = std::string("nope"); // Does not compile!
+```
+
+
+====================
+
+## Inheritance vs. Hand-Rolled Type Erasure vs. Boost.TypeErasure
+
+----
+
+TODO
         </script>
       </section>
     </div>
