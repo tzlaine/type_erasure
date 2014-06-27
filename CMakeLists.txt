@@ -18,5 +18,5 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 add_subdirectory(hand_rolled)
 add_subdirectory(boost_type_erasure)
-add_subdirectory(libclang_generator)
+add_subdirectory(emtypen)
 add_subdirectory(presentation)
