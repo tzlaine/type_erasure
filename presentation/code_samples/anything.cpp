@@ -25,18 +25,18 @@ struct unassignable
 int main ()
 {
 // sample(anything_in_action)
-struct foo {};
-anything a;
-
 int i = 1; 
+int * i_ptr = &i;
+
+anything a;
 a = i;
+a = i_ptr;
 
 a = 2.0;
 a = std::string("3");
-a = foo();
 
-int * i_ptr = &i;
-a = i_ptr;
+struct foo {};
+a = foo();
 // end-sample
 
 a = undefaultable(1);

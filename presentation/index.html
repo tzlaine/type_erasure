@@ -173,12 +173,11 @@ Q: Is this an example of polymorphism?
 
 ```cpp
 struct base { virtual ~base () {} };
-struct has_foo : base { virtual int foo () { return 42; } };
-struct derived : has_foo {};
+struct derived : base { virtual int foo () { return 42; } };
 
 void some_function () {
     base * b_pointer = new derived;
-    requires_foo(static_cast<has_foo*>(b_pointer)); // <-- this here
+    requires_foo(static_cast<derived*>(b_pointer)); // <-- this here
 }
 ```
 
@@ -465,14 +464,14 @@ struct anything
     struct handle_base
     {
         virtual ~handle_base () {}
-        virtual handle_base* clone () const = 0;
+        virtual handle_base * clone () const = 0;
     };
 
     template <typename T>
     struct handle : handle_base
     {
         handle (T value);
-        virtual handle_base* clone () const;
+        virtual handle_base * clone () const;
         T value_;
     };
 
@@ -523,7 +522,7 @@ anything::handle<T>::handle (T value) :
 {}
 
 template <typename T> 
-anything::handle_base* anything::handle<T>::clone () const
+anything::handle_base * anything::handle<T>::clone () const
 { return new handle(value_); }
 ```
 
@@ -532,18 +531,18 @@ anything::handle_base* anything::handle<T>::clone () const
 `anything` in action
 
 ```cpp
-struct foo {};
-anything a;
-
 int i = 1; 
+int * i_ptr = &i;
+
+anything a;
 a = i;
+a = i_ptr;
 
 a = 2.0;
 a = std::string("3");
-a = foo();
 
-int * i_ptr = &i;
-a = i_ptr;
+struct foo {};
+a = foo();
 ```
 
 Dymamic typing ("duck typing"), similar to that in Python.  Consider dumping
@@ -712,7 +711,7 @@ Replace the `handle` constructor with these:
         handle (T value,
                 typename std::enable_if<
                     std::is_reference<U>::value
-                >::type* = 0) :
+                >::type * = 0) :
             value_ (value)
         {}
 
@@ -721,7 +720,7 @@ Replace the `handle` constructor with these:
                 typename std::enable_if<
                     !std::is_reference<U>::value,
                     int
-                >::type* = 0) noexcept :
+                >::type * = 0) noexcept :
             value_ (std::move(value))
         {}
 ```
@@ -893,8 +892,6 @@ What have we lost?
 
 - Thread safety via copy-on-write
 
-- Free "deep" copy operations
-
 - Elision of heap allocations for small types and references
 
 ----
@@ -903,7 +900,7 @@ What have we lost?
 
 - Simplicity of implementation
 
-- The free "deep" copies and thread safety come at the cost of copies when
+- Thread safety come at the cost of some atomic operations and copies when
   values are mutated
 
 ====================
@@ -959,13 +956,6 @@ void append_many(any<has_push_back<void(int)>, _self&> container) {
 - The error messages will make your eyes bleed.
 - The small buffer optimization is not supported. 
 - Writing `const` member function requirements is not straightforward.
-- Assignment after construction is not supported:
-
-```cpp
-any</*...*/> x(10);
-x = std::string("nope"); // Does not compile!
-```
-
 
 ====================
 
@@ -973,7 +963,153 @@ x = std::string("nope"); // Does not compile!
 
 ----
 
-TODO
+Allocations for small/large/ref held values:
+
+| Operation      | Inh.  | Optimized TE | Boost TE |
+| -------------- |:-----:|:------------:|:--------:|
+| Construct      | 1/1/- | 0/1/0        | 1/1/0    |
+| Copy           | 0/0/- | 0/0/0        | 1/1/0    |
+| Assign         | 0/0/- | 0/0/0        | 1/1/0    |
+| Alt. Interface | 0/0/-*| 0/1/0        | 1/1/0    |
+
+All values are the same for copies of the underlying value, except for the
+optimized hand-rolled version's binding to an alternate interface.
+
+TODO It might not even allocate!
+
+----
+
+Space requirements, including held-object storage:
+
+| Technique      | Held Object Size   | Space Requirement  |
+| -------------- |:------------------:|:------------------:|
+| Inheritance    | All                | `P` + `O`          |
+| Hand-rolled TE | Small              | `P` + `B`          |
+| Hand-rolled TE | Large              | `P` + `B` + `O`    |
+| Boost TE       | All                | `FM` + `O`         |
+
+`P` is the size of a pointer to a heap-allocated object, `F` is the size of a
+pointer-to-function, `O` is the size of the stored object, `M` is the number
+of members in an erased type's interface, and `B` is small buffer size.
+
+====================
+
+## One More Thing ...
+
+The biggest advantage of using Boost.TypeErasure over a hand-rolled
+implementation is that your hands get a rest.
+
+Q: How do we avoid large amounts of cut-and-pasted code?
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+A: We generate it, using <!-- .element: class="fragment" data-fragment-index="3" -->`emtypen`.
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+## `emtypen`
+
+`emtypen` is an MIT-licensed tool that takes a real C++ header with one or
+more archetypal interfaces and produces the hand-rolled version of the type
+erasure techniques presented in this talk.  It uses libclang. For example:
+
+```cpp
+$ emtypen archetypes.hpp > generated.hpp
+```
+
+`generated.hpp` now contains the generated erased types, one for each
+archetypal `struct`/`class` in `archetypes.hpp`.
+
+All the erased types in the code in this talk were generated using this tool.
+
+----
+
+Your input can be a real-boy C++ header, that you can syntax check with a real
+compiler.
+
+As for the output,
+
+- Include guards are preserved.
+- Included headers are preserved.
+- Namespaces are preserved.
+- All `struct`/`class` definitions are converted to erased types.
+- Templated archetypes are supported.
+- Everything else is lost (including macros and comments, because libclang).
+
+----
+
+Archetype input:
+
+```cpp
+#ifndef LOGGABLE_INTERFACE_INCLUDED__
+#define LOGGABLE_INTERFACE_INCLUDED__
+
+#include <iostream>
+
+
+struct loggable
+{
+    std::ostream & log (std::ostream & os) const;
+};
+
+#endif
+```
+
+----
+
+Erased type output:
+
+```cpp
+#ifndef LOGGABLE_INTERFACE_INCLUDED__
+#define LOGGABLE_INTERFACE_INCLUDED__
+
+# include <iostream>
+
+#include <algorithm>
+#include <cassert>
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
+
+
+
+struct loggable
+{
+public:
+    // Lots of boilerplate code here.
+    std :: ostream & log ( std :: ostream & os) const
+    { assert(handle_); return handle_->log(os ); }
+
+private:
+    // Even more boilerplate code here.
+};
+
+#endif
+```
+
+----
+
+`emtypen` generates your erased types based on a "form" file.
+
+The form file contains the boilerplate code for generating one erased type.
+
+`emptypen` takes optional command-line parameters that can be used to change
+the form file used, or the block of headers it includes near the top of the
+file.
+
+You can completely change the boilerplate if you like.  Forms are provided for
+all the hand-rolled versions of type erasure presented in this talk.
+
+----
+
+## Go get it:
+
+http://github.com/tzlaine/type_erasure
+
+### &nbsp;
+
+## Questions?
         </script>
       </section>
     </div>
