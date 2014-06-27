@@ -514,7 +514,7 @@ Allocations:
 Remove one set of allocations on construction by applying copy-on-write
 directly to the `handle_` member.
 
-%%type_erasure_plus_with_cow%%
+%%type_erasure_with_cow%%
 
 Copies only happen when a non-const member function is called.
 
@@ -536,9 +536,48 @@ Allocations:
 
 ### Step 4: Apply the Small Buffer Optimization
 
+%%type_erasure_with_sbo%%
+
 ----
 
-TODO
+### Pointer-based Inheritance vs. Erased Types
+
+Allocations for small<sup>&dagger;</sup>/large objects:
+
+| Operation      | Inh. | Simple TE | TE w/COW  |
+| -------------- |:----:|:---------:|:---------:|
+| Construct      | 1/1  | 1/1       | 0/1       |
+| Copy           | 0/0  | 1/1       | 0/1       |
+| Assign         | 0/0  | 1/1       | 0/1       |
+| "Clone"        | 1/1  | 1/1 (copy)| 0/1 (copy)|
+| Alt. Interface | 0/0* | 1/1       | 0/1       |
+
+<sup>&dagger;</sup> `std::referece_wrapper` is always small.
+
+----
+
+### Step 5: Apply SBO and Integrated COW
+
+%%type_erasure_with_sbo_and_cow%%
+
+----
+
+### Pointer-based Inheritance vs. Erased Types
+
+Allocations for small<sup>&dagger;</sup>/large objects:
+
+| Operation      | Inh. | Simple TE | TE w/SBO+COW|
+| -------------- |:----:|:---------:|:-----------:|
+| Construct      | 1/1  | 1/1       | 0/1         |
+| Copy           | 0/0  | 1/1       | 0/0         |
+| Assign         | 0/0  | 1/1       | 0/0         |
+| "Clone"        | 1/1  | 1/1 (copy)| 0/0 (copy)  |
+| Alt. Interface | 0/0* | 1/1       | 0/1         |
+
+<sup>&dagger;</sup> Again, `std::referece_wrapper` is always small.
+
+Copies only happen when a non-const member function is called.
+
         </script>
       </section>
     </div>
