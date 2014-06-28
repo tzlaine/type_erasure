@@ -1,3 +1,6 @@
+#ifndef PRINTABLE_TYPES_INCLUDED__
+#define PRINTABLE_TYPES_INCLUDED__
+
 #include <iostream>
 #include <vector>
 
@@ -71,3 +74,5 @@ struct large_printable :
     void print () const
     { std::cout << "I'm expensive to copy.\n"; }
 };
+
+#endif

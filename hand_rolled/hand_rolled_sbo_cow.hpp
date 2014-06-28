@@ -1,5 +1,5 @@
-#ifndef HAND_ROLLED_SBO_INCLUDED__
-#define HAND_ROLLED_SBO_INCLUDED__
+#ifndef HAND_ROLLED_SBO_COW_INCLUDED__
+#define HAND_ROLLED_SBO_COW_INCLUDED__
 
 #include <printable_types.hpp>
 
@@ -17,22 +17,22 @@
 #define noexcept
 #endif
 
-class any_printable
+class any_printable_cow
 {
 public:
     // Contructors
-    any_printable () :
+    any_printable_cow () :
         handle_ (nullptr),
         buffer_ {}
     {}
 
     template <typename T>
-    any_printable (T value) :
+    any_printable_cow (T value) :
         handle_ (nullptr),
         buffer_ {}
     { handle_ = clone_impl(std::forward<T>(value), buffer_); }
 
-    any_printable (const any_printable & rhs) :
+    any_printable_cow (const any_printable_cow & rhs) :
         handle_ (nullptr),
         buffer_ {}
     {
@@ -40,36 +40,36 @@ public:
             handle_ = rhs.handle_->clone_into(buffer_);
     }
 
-    any_printable (any_printable && rhs) noexcept :
+    any_printable_cow (any_printable_cow && rhs) noexcept :
         handle_ (nullptr),
         buffer_ (rhs.buffer_)
     { std::swap(rhs.handle_, handle_); }
 
     // Assignment
     template <typename T>
-    any_printable & operator= (T value)
+    any_printable_cow & operator= (T value)
     {
         handle_ = clone_impl(std::forward<T>(value), buffer_);
         return *this;
     }
 
-    any_printable & operator= (const any_printable & rhs)
+    any_printable_cow & operator= (const any_printable_cow & rhs)
     {
-        any_printable temp(rhs);
+        any_printable_cow temp(rhs);
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
         return *this;
     }
 
-    any_printable & operator= (any_printable && rhs) noexcept
+    any_printable_cow & operator= (any_printable_cow && rhs) noexcept
     {
-        any_printable temp(std::move(rhs));
+        any_printable_cow temp(std::move(rhs));
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
         return *this;
     }
 
-    ~any_printable ()
+    ~any_printable_cow ()
     {
         if (handle_)
             handle_->destroy();

@@ -1,5 +1,3 @@
-#define ACCEPT_REFERENCE_WRAPPER 1
-
 #include <copy_on_write.hpp>
 
 #include "hand_rolled_sbo.hpp"
@@ -28,55 +26,53 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
         reset_allocations();                                            \
     } while (false)
 
-    ECHO(hi_printable hi; any_printable ap(hi));
-    ECHO(large_printable large; any_printable ap(large));
-    ECHO(bye_printable bye; any_printable ap(bye));
+    ECHO(hi_printable hi; any_printable_cow ap(hi));
+    ECHO(large_printable large; any_printable_cow ap(large));
+    ECHO(bye_printable bye; any_printable_cow ap(bye));
 
-    ECHO(hi_printable hi; any_printable ap = hi);
-    ECHO(large_printable large; any_printable ap = large);
-    ECHO(bye_printable bye; any_printable ap = bye);
+    ECHO(hi_printable hi; any_printable_cow ap = hi);
+    ECHO(large_printable large; any_printable_cow ap = large);
+    ECHO(bye_printable bye; any_printable_cow ap = bye);
 
-    ECHO(hi_printable hi; any_printable tmp = hi; any_printable ap = tmp);
-    ECHO(large_printable large; any_printable tmp = large; any_printable ap = tmp);
-    ECHO(bye_printable bye; any_printable tmp = bye; any_printable ap = tmp);
+    ECHO(hi_printable hi; any_printable_cow tmp = hi; any_printable_cow ap = tmp);
+    ECHO(large_printable large; any_printable_cow tmp = large; any_printable_cow ap = tmp);
+    ECHO(bye_printable bye; any_printable_cow tmp = bye; any_printable_cow ap = tmp);
 
-    ECHO(hi_printable hi; any_printable ap; ap = hi);
-    ECHO(large_printable large; any_printable ap; ap = large);
-    ECHO(bye_printable bye; any_printable ap; ap = bye);
+    ECHO(hi_printable hi; any_printable_cow ap; ap = hi);
+    ECHO(large_printable large; any_printable_cow ap; ap = large);
+    ECHO(bye_printable bye; any_printable_cow ap; ap = bye);
 
-    ECHO(const hi_printable hi{}; any_printable ap(hi));
-    ECHO(const large_printable large{}; any_printable ap(large));
-    ECHO(const bye_printable bye{}; any_printable ap(bye));
+    ECHO(const hi_printable hi{}; any_printable_cow ap(hi));
+    ECHO(const large_printable large{}; any_printable_cow ap(large));
+    ECHO(const bye_printable bye{}; any_printable_cow ap(bye));
 
-    ECHO(const hi_printable hi{}; any_printable ap = hi);
-    ECHO(const large_printable large{}; any_printable ap = large);
-    ECHO(const bye_printable bye{}; any_printable ap = bye);
+    ECHO(const hi_printable hi{}; any_printable_cow ap = hi);
+    ECHO(const large_printable large{}; any_printable_cow ap = large);
+    ECHO(const bye_printable bye{}; any_printable_cow ap = bye);
 
-    ECHO(const hi_printable hi{}; any_printable tmp = hi; any_printable ap = tmp);
-    ECHO(const large_printable large{}; any_printable tmp = large; any_printable ap = tmp);
-    ECHO(const bye_printable bye{}; any_printable tmp = bye; any_printable ap = tmp);
+    ECHO(const hi_printable hi{}; any_printable_cow tmp = hi; any_printable_cow ap = tmp);
+    ECHO(const large_printable large{}; any_printable_cow tmp = large; any_printable_cow ap = tmp);
+    ECHO(const bye_printable bye{}; any_printable_cow tmp = bye; any_printable_cow ap = tmp);
 
-    ECHO(const hi_printable hi{}; any_printable ap; ap = hi);
-    ECHO(const large_printable large{}; any_printable ap; ap = large);
-    ECHO(const bye_printable bye{}; any_printable ap; ap = bye);
+    ECHO(const hi_printable hi{}; any_printable_cow ap; ap = hi);
+    ECHO(const large_printable large{}; any_printable_cow ap; ap = large);
+    ECHO(const bye_printable bye{}; any_printable_cow ap; ap = bye);
 
-    ECHO(any_printable ap(hi_printable{}));
-    ECHO(any_printable ap(large_printable{}));
-    ECHO(any_printable ap(bye_printable{}));
+    ECHO(any_printable_cow ap(hi_printable{}));
+    ECHO(any_printable_cow ap(large_printable{}));
+    ECHO(any_printable_cow ap(bye_printable{}));
 
-    ECHO(any_printable ap = hi_printable{});
-    ECHO(any_printable ap = large_printable{});
-    ECHO(any_printable ap = bye_printable{});
+    ECHO(any_printable_cow ap = hi_printable{});
+    ECHO(any_printable_cow ap = large_printable{});
+    ECHO(any_printable_cow ap = bye_printable{});
 
-#if ACCEPT_REFERENCE_WRAPPER
-    ECHO(hi_printable hi; any_printable ap(std::ref(hi)));
-    ECHO(large_printable large; any_printable ap(std::ref(large)));
-    ECHO(bye_printable bye; any_printable ap(std::ref(bye)));
+    ECHO(hi_printable hi; any_printable_cow ap(std::ref(hi)));
+    ECHO(large_printable large; any_printable_cow ap(std::ref(large)));
+    ECHO(bye_printable bye; any_printable_cow ap(std::ref(bye)));
 
-    ECHO(hi_printable hi; any_printable ap(std::cref(hi)));
-    ECHO(large_printable large; any_printable ap(std::cref(large)));
-    ECHO(bye_printable bye; any_printable ap(std::cref(bye)));
-#endif
+    ECHO(hi_printable hi; any_printable_cow ap(std::cref(hi)));
+    ECHO(large_printable large; any_printable_cow ap(std::cref(large)));
+    ECHO(bye_printable bye; any_printable_cow ap(std::cref(bye)));
 
 #undef ECHO
 }
