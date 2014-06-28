@@ -4,6 +4,7 @@ if (Boost_FOUND)
    include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                        ${Boost_INCLUDE_DIR})
    add_executable(hand_rolled_test basic_test.cpp)
+   add_executable(hand_rolled_cow_test cow_test.cpp)
    add_executable(hand_rolled_vtable_test vtable_test.cpp)
    add_executable(hand_rolled_sbo_test sbo_test.cpp)
    add_executable(hand_rolled_sbo_cow_test sbo_cow_test.cpp)

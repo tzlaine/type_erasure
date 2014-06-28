@@ -29,10 +29,8 @@ public:
     template <typename T>
     any_printable_cow& operator= (T value)
     {
-        if (handle_.unique())
-            *handle_ = std::forward<T>(value);
-        else if (!handle_)
-            handle_ = std::make_shared<T>(std::forward<T>(value));
+        any_printable_cow temp(std::forward<T>(value));
+        std::swap(temp.handle_, handle_);
         return *this;
     }
 
