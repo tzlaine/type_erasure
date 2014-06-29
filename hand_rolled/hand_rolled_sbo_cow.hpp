@@ -17,24 +17,24 @@
 #define noexcept
 #endif
 
-class any_printable_cow
+class printable_sbo_cow
 {
 public:
     // Contructors
-    any_printable_cow () :
+    printable_sbo_cow () :
         handle_ (nullptr),
         buffer_ {},
         ref_count_ (0)
     {}
 
     template <typename T>
-    any_printable_cow (T value) :
+    printable_sbo_cow (T value) :
         handle_ (nullptr),
         buffer_ {},
         ref_count_ (1)
     { handle_ = clone_impl(std::forward<T>(value), buffer_); }
 
-    any_printable_cow (const any_printable_cow & rhs) :
+    printable_sbo_cow (const printable_sbo_cow & rhs) :
         handle_ (rhs.handle_),
         buffer_ (rhs.buffer_),
         ref_count_ (static_cast<std::size_t>(rhs.ref_count_))
@@ -43,7 +43,7 @@ public:
             ++ref_count_;
     }
 
-    any_printable_cow (any_printable_cow && rhs) noexcept :
+    printable_sbo_cow (printable_sbo_cow && rhs) noexcept :
         handle_ (rhs.handle_),
         buffer_ (rhs.buffer_),
         ref_count_ (static_cast<std::size_t>(rhs.ref_count_))
@@ -54,7 +54,7 @@ public:
 
     // Assignment
     template <typename T>
-    any_printable_cow & operator= (T value)
+    printable_sbo_cow & operator= (T value)
     {
         reset();
         handle_ = clone_impl(std::forward<T>(value), buffer_);
@@ -62,9 +62,9 @@ public:
         return *this;
     }
 
-    any_printable_cow & operator= (const any_printable_cow & rhs)
+    printable_sbo_cow & operator= (const printable_sbo_cow & rhs)
     {
-        any_printable_cow temp(rhs);
+        printable_sbo_cow temp(rhs);
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
         ref_count_ = temp.ref_count_.exchange(ref_count_);
@@ -73,16 +73,16 @@ public:
         return *this;
     }
 
-    any_printable_cow & operator= (any_printable_cow && rhs) noexcept
+    printable_sbo_cow & operator= (printable_sbo_cow && rhs) noexcept
     {
-        any_printable_cow temp(std::move(rhs));
+        printable_sbo_cow temp(std::move(rhs));
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
         ref_count_ = temp.ref_count_.exchange(ref_count_);
         return *this;
     }
 
-    ~any_printable_cow ()
+    ~printable_sbo_cow ()
     { reset(); }
 
     // Public interface

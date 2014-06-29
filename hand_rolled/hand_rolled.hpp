@@ -22,14 +22,14 @@
 #define ACCEPT_REFERENCE_WRAPPER 1
 #endif
 
-class any_printable
+class printable
 {
 public:
     // Contructors
-    any_printable () = default;
+    printable () = default;
 
     template <typename T>
-    any_printable (T value) :
+    printable (T value) :
         handle_ (
             new handle<typename std::remove_reference<T>::type>(
                 std::forward<T>(value)
@@ -37,31 +37,31 @@ public:
         )
     {}
 
-    any_printable (const any_printable & rhs) :
+    printable (const printable & rhs) :
         handle_ (rhs.handle_->clone())
     {}
 
-    any_printable (any_printable && rhs) noexcept :
+    printable (printable && rhs) noexcept :
         handle_ (std::move(rhs.handle_))
     {}
 
     // Assignment
     template <typename T>
-    any_printable& operator= (T value)
+    printable & operator= (T value)
     {
-        any_printable temp(std::forward<T>(value));
+        printable temp(std::forward<T>(value));
         std::swap(temp, *this);
         return *this;
     }
 
-    any_printable & operator= (const any_printable & rhs)
+    printable & operator= (const printable & rhs)
     {
-        any_printable temp(rhs);
+        printable temp(rhs);
         std::swap(temp, *this);
         return *this;
     }
 
-    any_printable & operator= (any_printable && rhs) noexcept
+    printable & operator= (printable && rhs) noexcept
     {
         handle_ = std::move(rhs.handle_);
         return *this;

@@ -12,14 +12,14 @@
 #include <vector>
 
 
-class any_printable_cow
+class printable_cow
 {
 public:
     // Contructors
-    any_printable_cow () = default;
+    printable_cow () = default;
 
     template <typename T>
-    any_printable_cow (T value) :
+    printable_cow (T value) :
         handle_ (
             std::make_shared<handle<typename std::remove_reference<T>::type>>(
                 std::forward<T>(value)
@@ -29,9 +29,9 @@ public:
 
     // Assignment
     template <typename T>
-    any_printable_cow& operator= (T value)
+    printable_cow & operator= (T value)
     {
-        any_printable_cow temp(std::forward<T>(value));
+        printable_cow temp(std::forward<T>(value));
         std::swap(temp.handle_, handle_);
         return *this;
     }
@@ -57,7 +57,6 @@ private:
     struct handle :
         handle_base
     {
-#if ACCEPT_REFERENCE_WRAPPER
         template <typename U = T>
         handle (T value,
                 typename std::enable_if<
@@ -74,11 +73,6 @@ private:
                 >::type * = 0) noexcept :
             value_ (std::move(value))
         {}
-#else
-        handle (T value) :
-            value_ (value)
-        {}
-#endif
 
         virtual std::shared_ptr<handle_base> clone () const
         { return std::make_shared<handle>(value_); }
@@ -90,7 +84,6 @@ private:
         T value_;
     };
 
-#if ACCEPT_REFERENCE_WRAPPER
     template <typename T>
     struct handle<std::reference_wrapper<T>> :
         handle<T &>
@@ -99,7 +92,6 @@ private:
             handle<T &> (ref.get())
         {}
     };
-#endif
 
     const handle_base & read () const
     { return *handle_; }

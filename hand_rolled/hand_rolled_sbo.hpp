@@ -17,22 +17,22 @@
 #define noexcept
 #endif
 
-class any_printable
+class printable_sbo
 {
 public:
     // Contructors
-    any_printable () :
+    printable_sbo () :
         handle_ (nullptr),
         buffer_ {}
     {}
 
     template <typename T>
-    any_printable (T value) :
+    printable_sbo (T value) :
         handle_ (nullptr),
         buffer_ {}
     { handle_ = clone_impl(std::forward<T>(value), buffer_); }
 
-    any_printable (const any_printable & rhs) :
+    printable_sbo (const printable_sbo & rhs) :
         handle_ (nullptr),
         buffer_ {}
     {
@@ -40,37 +40,37 @@ public:
             handle_ = rhs.handle_->clone_into(buffer_);
     }
 
-    any_printable (any_printable && rhs) noexcept :
+    printable_sbo (printable_sbo && rhs) noexcept :
         handle_ (nullptr),
         buffer_ (rhs.buffer_)
     { std::swap(rhs.handle_, handle_); }
 
     // Assignment
     template <typename T>
-    any_printable & operator= (T value)
+    printable_sbo & operator= (T value)
     {
         reset();
         handle_ = clone_impl(std::forward<T>(value), buffer_);
         return *this;
     }
 
-    any_printable & operator= (const any_printable & rhs)
+    printable_sbo & operator= (const printable_sbo & rhs)
     {
-        any_printable temp(rhs);
+        printable_sbo temp(rhs);
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
         return *this;
     }
 
-    any_printable & operator= (any_printable && rhs) noexcept
+    printable_sbo & operator= (printable_sbo && rhs) noexcept
     {
-        any_printable temp(std::move(rhs));
+        printable_sbo temp(std::move(rhs));
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
         return *this;
     }
 
-    ~any_printable ()
+    ~printable_sbo ()
     { reset(); }
 
     // Public interface

@@ -17,12 +17,7 @@
 #define noexcept
 #endif
 
-// Variation 1: Accept std::reference_wrapper<>.
-#ifndef ACCEPT_REFERENCE_WRAPPER
-#define ACCEPT_REFERENCE_WRAPPER 1
-#endif
-
-class any_printable
+class printable_vtable
 {
 private:
     template <typename ValueType>
@@ -55,10 +50,10 @@ private:
 
 public:
     // Contructors
-    any_printable ();
+    printable_vtable ();
 
     template <typename T>
-    any_printable (T value) :
+    printable_vtable (T value) :
         vtable_ ({
             (void_function_type)(&clone_impl<T>),
             (void_function_type)(&delete_impl<T>),
@@ -73,40 +68,40 @@ public:
             value_ = new T(std::move(value));
     }
 
-    any_printable (const any_printable & rhs) :
+    printable_vtable (const printable_vtable & rhs) :
         vtable_ (rhs.vtable_),
         get_value_ptr_ (rhs.get_value_ptr_),
         value_ (rhs.clone())
     {}
 
-    any_printable (any_printable && rhs) noexcept;
+    printable_vtable (printable_vtable && rhs) noexcept;
 
     // Assignment
     template <typename T>
-    any_printable& operator= (T value)
+    printable_vtable & operator= (T value)
     {
-        any_printable temp(std::forward<T>(value));
+        printable_vtable temp(std::forward<T>(value));
         std::swap(temp, *this);
         return *this;
     }
 
-    any_printable & operator= (const any_printable & rhs)
+    printable_vtable & operator= (const printable_vtable & rhs)
     {
-        any_printable temp(rhs);
+        printable_vtable temp(rhs);
         std::swap(temp, *this);
         return *this;
     }
 
-    any_printable & operator= (any_printable && rhs) noexcept
+    printable_vtable & operator= (printable_vtable && rhs) noexcept
     {
-        any_printable temp(std::move(rhs));
+        printable_vtable temp(std::move(rhs));
         std::swap(temp.vtable_, vtable_);
         std::swap(temp.get_value_ptr_, get_value_ptr_);
         std::swap(temp.value_, value_);
         return *this;
     }
 
-    ~any_printable ()
+    ~printable_vtable ()
     {
         if (heap_allocated()) {
             delete_wrapper_type delete_impl = (delete_wrapper_type)(vtable_[1]);
@@ -122,10 +117,10 @@ public:
     }
 
 private:
-    using get_value_ptr_type = void * (*) (const any_printable *);
+    using get_value_ptr_type = void * (*) (const printable_vtable *);
 
     template <bool FromHeap>
-    static void * get_value_ptr (const any_printable * _this)
+    static void * get_value_ptr (const printable_vtable * _this)
     { return const_cast<void *>(_this->value_); }
 
     bool heap_allocated () const
@@ -149,15 +144,15 @@ private:
 };
 
 template <>
-void * any_printable::get_value_ptr<false> (const any_printable * _this)
+void * printable_vtable::get_value_ptr<false> (const printable_vtable * _this)
 { return const_cast<void *>(static_cast<const void *>(&_this->value_)); }
 
-any_printable::any_printable () :
+printable_vtable::printable_vtable () :
     get_value_ptr_ (get_value_ptr<false>),
     value_ (0)
 {}
 
-any_printable::any_printable (any_printable && rhs) noexcept :
+printable_vtable::printable_vtable (printable_vtable && rhs) noexcept :
     vtable_ (rhs.vtable_),
     get_value_ptr_ (rhs.get_value_ptr_),
     value_ (rhs.value_)
