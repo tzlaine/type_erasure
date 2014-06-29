@@ -49,6 +49,7 @@ public:
     template <typename T>
     any_printable & operator= (T value)
     {
+        reset();
         handle_ = clone_impl(std::forward<T>(value), buffer_);
         return *this;
     }
@@ -70,10 +71,7 @@ public:
     }
 
     ~any_printable ()
-    {
-        if (handle_)
-            handle_->destroy();
-    }
+    { reset(); }
 
     // Public interface
     void print () const
@@ -163,6 +161,12 @@ private:
             retval = new handle<handle_t, true>(std::forward<T>(value));
         }
         return retval;
+    }
+
+    void reset ()
+    {
+        if (handle_)
+            handle_->destroy();
     }
 
     handle_base * handle_;

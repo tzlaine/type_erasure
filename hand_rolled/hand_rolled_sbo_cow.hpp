@@ -23,33 +23,42 @@ public:
     // Contructors
     any_printable_cow () :
         handle_ (nullptr),
-        buffer_ {}
+        buffer_ {},
+        ref_count_ (0)
     {}
 
     template <typename T>
     any_printable_cow (T value) :
         handle_ (nullptr),
-        buffer_ {}
+        buffer_ {},
+        ref_count_ (1)
     { handle_ = clone_impl(std::forward<T>(value), buffer_); }
 
     any_printable_cow (const any_printable_cow & rhs) :
-        handle_ (nullptr),
-        buffer_ {}
+        handle_ (rhs.handle_),
+        buffer_ (rhs.buffer_),
+        ref_count_ (static_cast<std::size_t>(rhs.ref_count_))
     {
-        if (rhs.handle_)
-            handle_ = rhs.handle_->clone_into(buffer_);
+        if (handle_)
+            ++ref_count_;
     }
 
     any_printable_cow (any_printable_cow && rhs) noexcept :
-        handle_ (nullptr),
-        buffer_ (rhs.buffer_)
-    { std::swap(rhs.handle_, handle_); }
+        handle_ (rhs.handle_),
+        buffer_ (rhs.buffer_),
+        ref_count_ (static_cast<std::size_t>(rhs.ref_count_))
+    {
+        rhs.handle_ = nullptr;
+        rhs.ref_count_ = 0;
+    }
 
     // Assignment
     template <typename T>
     any_printable_cow & operator= (T value)
     {
+        reset();
         handle_ = clone_impl(std::forward<T>(value), buffer_);
+        ref_count_ = 1;
         return *this;
     }
 
@@ -58,6 +67,9 @@ public:
         any_printable_cow temp(rhs);
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
+        ref_count_ = temp.ref_count_.exchange(ref_count_);
+        if (handle_)
+            ++ref_count_;
         return *this;
     }
 
@@ -66,14 +78,12 @@ public:
         any_printable_cow temp(std::move(rhs));
         std::swap(temp.handle_, handle_);
         std::swap(temp.buffer_, buffer_);
+        ref_count_ = temp.ref_count_.exchange(ref_count_);
         return *this;
     }
 
     ~any_printable_cow ()
-    {
-        if (handle_)
-            handle_->destroy();
-    }
+    { reset(); }
 
     // Public interface
     void print () const
@@ -165,8 +175,15 @@ private:
         return retval;
     }
 
+    void reset()
+    {
+        if (handle_ && ref_count_ == 1u)
+            handle_->destroy();
+    }
+
     handle_base * handle_;
     buffer buffer_;
+    std::atomic_size_t ref_count_;
 };
 
 #endif
