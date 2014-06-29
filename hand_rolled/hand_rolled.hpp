@@ -17,7 +17,6 @@
 #define noexcept
 #endif
 
-// Variation 1: Accept std::reference_wrapper<>.
 #ifndef ACCEPT_REFERENCE_WRAPPER
 #define ACCEPT_REFERENCE_WRAPPER 1
 #endif
