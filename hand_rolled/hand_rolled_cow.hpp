@@ -1,6 +1,8 @@
 #ifndef HAND_ROLLED_COW_INCLUDED__
 #define HAND_ROLLED_COW_INCLUDED__
 
+#include <printable_types.hpp>
+
 #include <cassert>
 #include <functional>
 #include <iostream>

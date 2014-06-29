@@ -2,7 +2,6 @@
 
 #include <copy_on_write.hpp>
 
-#include "hand_rolled.hpp"
 #include "hand_rolled_cow.hpp"
 
 
@@ -16,7 +15,6 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     reset_allocations();
 #endif
 
-    std::cout << "sizeof(any_printable) = " << sizeof(any_printable) << "\n";
     std::cout << "sizeof(any_printable_cow) = " << sizeof(any_printable_cow) << "\n";
 
 #define ECHO(expr)                                                      \
@@ -68,7 +66,6 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     ECHO(any_printable_cow ap = large_printable{});
     ECHO(any_printable_cow ap = bye_printable{});
 
-#if ACCEPT_REFERENCE_WRAPPER
     ECHO(hi_printable hi; any_printable_cow ap(std::ref(hi)));
     ECHO(large_printable large; any_printable_cow ap(std::ref(large)));
     ECHO(bye_printable bye; any_printable_cow ap(std::ref(bye)));
@@ -76,16 +73,15 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     ECHO(hi_printable hi; any_printable_cow ap(std::cref(hi)));
     ECHO(large_printable large; any_printable_cow ap(std::cref(large)));
     ECHO(bye_printable bye; any_printable_cow ap(std::cref(bye)));
-#endif
 
 #undef ECHO
 }
 
 BOOST_AUTO_TEST_CASE(hand_rolled_vector)
 {
-    std::cout << "copied vector<any_printable>{hi_printable, large_printable}" << "\n";
+    std::cout << "copied vector<any_printable_cow>{hi_printable, large_printable}" << "\n";
 
-    std::vector<any_printable> several_printables = {
+    std::vector<any_printable_cow> several_printables = {
         hi_printable{},
         large_printable{}
     };
@@ -94,7 +90,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector)
         printable.print();
     }
 
-    std::vector<any_printable> several_printables_copy = several_printables;
+    std::vector<any_printable_cow> several_printables_copy = several_printables;
 
     std::cout << "allocations: " << allocations() << "\n\n";
     reset_allocations();
@@ -102,9 +98,9 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector)
 
 BOOST_AUTO_TEST_CASE(hand_rolled_vector_copy_on_write)
 {
-    std::cout << "copied vector<COW<any_printable>>{hi_printable, large_printable}" << "\n";
+    std::cout << "copied vector<COW<any_printable_cow>>{hi_printable, large_printable}" << "\n";
 
-    std::vector<copy_on_write<any_printable>> several_printables = {
+    std::vector<copy_on_write<any_printable_cow>> several_printables = {
         {hi_printable{}},
         {large_printable{}}
     };
@@ -113,26 +109,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled_vector_copy_on_write)
         printable->print();
     }
 
-    std::vector<copy_on_write<any_printable>> several_printables_copy = several_printables;
-
-    std::cout << "allocations: " << allocations() << "\n\n";
-    reset_allocations();
-}
-
-BOOST_AUTO_TEST_CASE(hand_rolled_cow_vector)
-{
-    std::cout << "copied vector<any_printable[COW]>{hi_printable, large_printable}" << "\n";
-
-    std::vector<any_printable_cow> several_printables = {
-        {hi_printable{}},
-        {large_printable{}}
-    };
-
-    for (const auto & printable : several_printables) {
-        printable.print();
-    }
-
-    std::vector<any_printable_cow> several_printables_copy = several_printables;
+    std::vector<copy_on_write<any_printable_cow>> several_printables_copy = several_printables;
 
     std::cout << "allocations: " << allocations() << "\n\n";
     reset_allocations();
