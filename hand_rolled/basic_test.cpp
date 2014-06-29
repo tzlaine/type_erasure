@@ -1,5 +1,3 @@
-#define ACCEPT_REFERENCE_WRAPPER 1
-
 #include <copy_on_write.hpp>
 
 #include "hand_rolled.hpp"
