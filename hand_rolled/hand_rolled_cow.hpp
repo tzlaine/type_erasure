@@ -11,6 +11,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef _MSC_VER
+#define noexcept
+#endif
+
 
 class printable_cow
 {
