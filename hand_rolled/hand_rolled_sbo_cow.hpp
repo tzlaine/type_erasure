@@ -25,16 +25,14 @@ public:
     // Contructors
     printable_sbo_cow () :
         handle_ (nullptr),
-        buffer_ {},
-        ref_count_ (0)
+        buffer_ {}
     {}
 
     template <typename T>
     printable_sbo_cow (T value) :
         handle_ (nullptr),
-        buffer_ {},
-        ref_count_ (1)
-    { handle_ = clone_impl(std::forward<T>(value), buffer_); }
+        buffer_ {}
+    { handle_ = contruct_impl(std::forward<T>(value), buffer_); }
 
     printable_sbo_cow (const printable_sbo_cow & rhs) :
         handle_ (
@@ -44,42 +42,39 @@ public:
                 char_ptr(&buffer_) + handle_offset(rhs.handle_, rhs.buffer_)
             )
         ),
-        buffer_ (rhs.buffer_),
-        ref_count_ (static_cast<std::size_t>(rhs.ref_count_))
+        buffer_ (rhs.buffer_)
     {
         if (handle_)
-            ++ref_count_;
+            handle_->add_ref();
     }
 
     printable_sbo_cow (printable_sbo_cow && rhs) noexcept :
         handle_ (nullptr),
-        buffer_ {},
-        ref_count_ (0)
-    { swap(rhs.handle_, rhs.buffer_, rhs.ref_count_); }
+        buffer_ {}
+    { swap(rhs.handle_, rhs.buffer_); }
 
     // Assignment
     template <typename T>
     printable_sbo_cow & operator= (T value)
     {
         reset();
-        handle_ = clone_impl(std::forward<T>(value), buffer_);
-        ref_count_ = 1;
+        handle_ = contruct_impl(std::forward<T>(value), buffer_);
         return *this;
     }
 
     printable_sbo_cow & operator= (const printable_sbo_cow & rhs)
     {
         printable_sbo_cow temp(rhs);
-        swap(temp.handle_, temp.buffer_, temp.ref_count_);
+        swap(temp.handle_, temp.buffer_);
         if (handle_)
-            ++ref_count_;
+            handle_->add_ref();
         return *this;
     }
 
     printable_sbo_cow & operator= (printable_sbo_cow && rhs) noexcept
     {
         printable_sbo_cow temp(std::move(rhs));
-        swap(temp.handle_, temp.buffer_, temp.ref_count_);
+        swap(temp.handle_, temp.buffer_);
         return *this;
     }
 
@@ -99,8 +94,8 @@ private:
     struct handle_base
     {
         virtual ~handle_base () {}
-        virtual handle_base * clone_into (buffer & buf) const = 0;
         virtual bool heap_allocated () const = 0;
+        virtual void add_ref () = 0;
         virtual void destroy () = 0;
 
         // Public interface
@@ -116,7 +111,8 @@ private:
                 typename std::enable_if<
                     std::is_reference<U>::value
                 >::type * = 0) :
-            value_ (value)
+            value_ (value),
+            ref_count_ (1)
         {}
 
         template <typename U = T>
@@ -125,21 +121,26 @@ private:
                     !std::is_reference<U>::value,
                     int
                 >::type * = 0) noexcept :
-            value_ (std::move(value))
+            value_ (std::move(value)),
+            ref_count_ (1)
         {}
-
-        virtual handle_base * clone_into (buffer & buf) const
-        { return clone_impl(value_, buf); }
 
         virtual bool heap_allocated () const
         { return HeapAllocated; }
 
+        virtual void add_ref ()
+        { ++ref_count_; }
+
         virtual void destroy ()
         {
-            if (HeapAllocated)
-                delete this;
-            else
-                this->~handle();
+            if (ref_count_ == 1u) {
+                if (HeapAllocated)
+                    delete this;
+                else
+                    this->~handle();
+            } else {
+                --ref_count_;
+            }
         }
 
         // Public interface
@@ -147,6 +148,7 @@ private:
         { value_.print(); }
 
         T value_;
+        std::atomic_size_t ref_count_;
     };
 
     template <typename T, bool HeapAllocated>
@@ -159,7 +161,7 @@ private:
     };
 
     template <typename T>
-    static handle_base * clone_impl (T value, buffer & buf)
+    static handle_base * contruct_impl (T value, buffer & buf)
     {
         handle_base * retval = nullptr;
         typedef typename std::remove_reference<T>::type handle_t;
@@ -177,9 +179,7 @@ private:
         return retval;
     }
 
-    void swap (handle_base * & rhs_handle,
-               buffer & rhs_buffer,
-               std::atomic_size_t & rhs_ref_count)
+    void swap (handle_base * & rhs_handle, buffer & rhs_buffer)
     {
         const bool this_heap_allocated =
             !handle_ || handle_->heap_allocated();
@@ -207,13 +207,11 @@ private:
             handle_ = handle_ptr(char_ptr(&buffer_) + this_offset);
             rhs_handle = handle_ptr(char_ptr(&rhs_buffer) + rhs_offset);
         }
-
-        ref_count_ = rhs_ref_count.exchange(ref_count_);
     }
 
     void reset()
     {
-        if (handle_ && ref_count_ == 1u)
+        if (handle_)
             handle_->destroy();
     }
 
@@ -241,7 +239,6 @@ private:
 
     handle_base * handle_;
     buffer buffer_;
-    std::atomic_size_t ref_count_;
 };
 
 #endif
