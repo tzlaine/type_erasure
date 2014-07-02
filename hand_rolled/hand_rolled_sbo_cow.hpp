@@ -11,7 +11,6 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 
 #ifdef _MSC_VER
