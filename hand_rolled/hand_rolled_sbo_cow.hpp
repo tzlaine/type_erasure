@@ -2,12 +2,12 @@
 #define HAND_ROLLED_SBO_COW_INCLUDED__
 
 #include <printable_types.hpp>
-
-#include <array>
+#include <iostream>
 #include <atomic>
+#include <array>
+
 #include <cassert>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <type_traits>
 #include <utility>

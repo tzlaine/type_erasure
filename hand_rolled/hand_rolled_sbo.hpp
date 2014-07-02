@@ -2,11 +2,11 @@
 #define HAND_ROLLED_SBO_INCLUDED__
 
 #include <printable_types.hpp>
-
+#include <iostream>
 #include <array>
+
 #include <cassert>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <type_traits>
 #include <utility>

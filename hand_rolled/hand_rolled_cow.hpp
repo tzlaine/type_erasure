@@ -2,10 +2,10 @@
 #define HAND_ROLLED_COW_INCLUDED__
 
 #include <printable_types.hpp>
+#include <iostream>
 
 #include <cassert>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <type_traits>
 #include <utility>
