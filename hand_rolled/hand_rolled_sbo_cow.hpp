@@ -169,7 +169,12 @@ private:
         std::size_t buf_size = sizeof(buf);
         const std::size_t alignment = alignof(handle<handle_t, false>);
         const std::size_t size = sizeof(handle<handle_t, false>);
-        buf_ptr = std::align(alignment, size, buf_ptr, buf_size);
+        const bool memcopyable =
+            std::is_trivially_destructible<typename std::remove_cv<T>::type>();
+        buf_ptr =
+            memcopyable ?
+            std::align(alignment, size, buf_ptr, buf_size) :
+            nullptr;
         if (buf_ptr) {
             new (buf_ptr) handle<handle_t, false>(std::forward<T>(value));
             retval = static_cast<handle_base *>(buf_ptr);
