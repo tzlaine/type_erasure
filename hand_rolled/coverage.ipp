@@ -313,4 +313,30 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
         BOOST_CHECK_EQUAL(erased_large_lval_copy_count, erased_large_const_lval_copy_count);
         BOOST_CHECK(erased_large_rval_move_count < erased_large_lval_copy_count);
     }
+
+    // SMALL VS. LARGE PERMUTATIONS
+
+    {
+        erased_type erased_large = erased_value::large_rval();
+        erased_type erased_small = erased_value::small_rval();
+        erased_small = std::move(erased_large);
+    }
+
+    {
+        erased_type erased_large = erased_value::large_rval();
+        erased_type erased_small = erased_value::small_rval();
+        erased_large = std::move(erased_small);
+    }
+
+    {
+        erased_type erased_small_1 = erased_value::small_rval();
+        erased_type erased_small_2 = erased_value::small_rval();
+        erased_small_1 = std::move(erased_small_2);
+    }
+
+    {
+        erased_type erased_large_1 = erased_value::large_rval();
+        erased_type erased_large_2 = erased_value::large_rval();
+        erased_large_1 = std::move(erased_large_2);
+    }
 }

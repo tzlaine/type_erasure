@@ -43,8 +43,8 @@ public:
 
     printable_sbo (printable_sbo && rhs) noexcept :
         handle_ (nullptr),
-        buffer_ (rhs.buffer_)
-    { std::swap(rhs.handle_, handle_); }
+        buffer_ {}
+    { swap(rhs.handle_, rhs.buffer_); }
 
     // Assignment
     template <typename T>
@@ -58,16 +58,14 @@ public:
     printable_sbo & operator= (const printable_sbo & rhs)
     {
         printable_sbo temp(rhs);
-        std::swap(temp.handle_, handle_);
-        std::swap(temp.buffer_, buffer_);
+        swap(temp.handle_, temp.buffer_);
         return *this;
     }
 
     printable_sbo & operator= (printable_sbo && rhs) noexcept
     {
         printable_sbo temp(std::move(rhs));
-        std::swap(temp.handle_, handle_);
-        std::swap(temp.buffer_, buffer_);
+        swap(temp.handle_, temp.buffer_);
         return *this;
     }
 
@@ -88,6 +86,7 @@ private:
     {
         virtual ~handle_base () {}
         virtual handle_base * clone_into (buffer & buf) const = 0;
+        virtual bool heap_allocated () const = 0;
         virtual void destroy () = 0;
 
         // Public interface
@@ -117,6 +116,9 @@ private:
 
         virtual handle_base * clone_into (buffer & buf) const
         { return clone_impl(value_, buf); }
+
+        virtual bool heap_allocated () const
+        { return HeapAllocated; }
 
         virtual void destroy ()
         {
@@ -149,12 +151,9 @@ private:
         typedef typename std::remove_reference<T>::type handle_t;
         void * buf_ptr = &buf;
         std::size_t buf_size = sizeof(buf);
-        buf_ptr = std::align(
-            alignof(handle<handle_t, false>),
-            sizeof(handle<handle_t, false>),
-            buf_ptr,
-            buf_size
-        );
+        const std::size_t alignment = alignof(handle<handle_t, false>);
+        const std::size_t size = sizeof(handle<handle_t, false>);
+        buf_ptr = std::align(alignment, size, buf_ptr, buf_size);
         if (buf_ptr) {
             new (buf_ptr) handle<handle_t, false>(std::forward<T>(value));
             retval = static_cast<handle_base *>(buf_ptr);
@@ -164,10 +163,55 @@ private:
         return retval;
     }
 
+    void swap (handle_base * & rhs_handle, buffer & rhs_buffer)
+    {
+        const bool this_heap_allocated =
+            !handle_ || handle_->heap_allocated();
+        const bool rhs_heap_allocated =
+            !rhs_handle || rhs_handle->heap_allocated();
+
+        if (this_heap_allocated && rhs_heap_allocated) {
+            std::swap(handle_, rhs_handle);
+        } else if (this_heap_allocated) {
+            const std::ptrdiff_t offset = handle_offset(rhs_handle, rhs_buffer);
+            rhs_handle = handle_;
+            buffer_ = rhs_buffer;
+            handle_ = handle_ptr(char_ptr(&buffer_) + offset);
+        } else if (rhs_heap_allocated) {
+            const std::ptrdiff_t offset = handle_offset(handle_, buffer_);
+            handle_ = rhs_handle;
+            rhs_buffer = buffer_;
+            rhs_handle = handle_ptr(char_ptr(&rhs_buffer) + offset);
+        } else {
+            const std::ptrdiff_t this_offset =
+                handle_offset(handle_, buffer_);
+            const std::ptrdiff_t rhs_offset =
+                handle_offset(rhs_handle, rhs_buffer);
+            std::swap(buffer_, rhs_buffer);
+            handle_ = handle_ptr(char_ptr(&buffer_) + this_offset);
+            rhs_handle = handle_ptr(char_ptr(&rhs_buffer) + rhs_offset);
+        }
+    }
+
     void reset ()
     {
         if (handle_)
             handle_->destroy();
+    }
+
+    template <typename T>
+    static unsigned char * char_ptr (T * ptr)
+    { return static_cast<unsigned char *>(static_cast<void *>(ptr)); }
+
+    static handle_base * handle_ptr (unsigned char * ptr)
+    { return static_cast<handle_base *>(static_cast<void *>(ptr)); }
+
+    static std::ptrdiff_t handle_offset (handle_base * h, buffer & b)
+    {
+        assert(h);
+        unsigned char * const char_handle = char_ptr(h);
+        unsigned char * const char_buffer = char_ptr(&b);
+        return char_handle - char_buffer;
     }
 
     handle_base * handle_;
