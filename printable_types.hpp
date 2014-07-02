@@ -44,35 +44,37 @@ struct bye_printable
     { std::cout << "Bye, now!\n"; }
 };
 
-struct large_printable :
-    std::vector<double>
+struct large_printable    
 {
     large_printable () :
-        std::vector<double> (1024 * 1024)
+        data_ (1024 * 1024)
     {}
 
     large_printable (const large_printable & rhs) :
-        std::vector<double> (rhs)
+        data_ (rhs.data_)
     {}
 
     large_printable & operator= (const large_printable & rhs)
     {
-        static_cast<std::vector<double> &>(*this) = rhs;
+        data_ = rhs.data_;
         return *this;
     }
 
     large_printable (large_printable && rhs) :
-        std::vector<double> (std::move(static_cast<std::vector<double> &>(rhs)))
+        data_ (std::move(rhs.data_))
     {}
 
     large_printable & operator= (large_printable && rhs)
     {
-        static_cast<std::vector<double> &>(*this) = std::move(rhs);
+        data_ = std::move(rhs.data_);
         return *this;
     }
 
     void print () const
     { std::cout << "I'm expensive to copy.\n"; }
+
+    std::vector<double> data_;
+    double and_more_data_[1024];
 };
 
 #endif
