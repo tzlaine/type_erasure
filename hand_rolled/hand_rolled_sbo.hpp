@@ -15,6 +15,7 @@
 
 #ifdef _MSC_VER
 #define noexcept
+#define alignof __alignof
 #endif
 
 class printable_sbo

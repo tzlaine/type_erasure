@@ -4,6 +4,7 @@
 #include <printable_types.hpp>
 
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -15,6 +16,7 @@
 
 #ifdef _MSC_VER
 #define noexcept
+#define alignof __alignof
 #endif
 
 class printable_sbo_cow
