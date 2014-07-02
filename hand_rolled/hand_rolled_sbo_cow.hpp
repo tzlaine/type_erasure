@@ -31,7 +31,7 @@ public:
     printable_sbo_cow (T value) :
         handle_ (nullptr),
         buffer_ {}
-    { handle_ = contruct_impl(std::forward<T>(value), buffer_); }
+    { handle_ = clone_impl(std::forward<T>(value), buffer_); }
 
     printable_sbo_cow (const printable_sbo_cow & rhs) :
         handle_ (
@@ -57,7 +57,7 @@ public:
     printable_sbo_cow & operator= (T value)
     {
         reset();
-        handle_ = contruct_impl(std::forward<T>(value), buffer_);
+        handle_ = clone_impl(std::forward<T>(value), buffer_);
         return *this;
     }
 
@@ -84,7 +84,7 @@ public:
     void print () const
     {
         assert(handle_);
-        handle_->print();
+        read().print();
     }
 
 private:
@@ -93,7 +93,9 @@ private:
     struct handle_base
     {
         virtual ~handle_base () {}
+        virtual handle_base * clone_into (buffer & buf) const = 0;
         virtual bool heap_allocated () const = 0;
+        virtual bool unique () const = 0;
         virtual void add_ref () = 0;
         virtual void destroy () = 0;
 
@@ -124,8 +126,14 @@ private:
             ref_count_ (1)
         {}
 
+        virtual handle_base * clone_into (buffer & buf) const
+        { return clone_impl(value_, buf); }
+
         virtual bool heap_allocated () const
         { return HeapAllocated; }
+
+        virtual bool unique () const
+        { return ref_count_ == 1u; }
 
         virtual void add_ref ()
         { ++ref_count_; }
@@ -160,7 +168,7 @@ private:
     };
 
     template <typename T>
-    static handle_base * contruct_impl (T value, buffer & buf)
+    static handle_base * clone_impl (T value, buffer & buf)
     {
         handle_base * retval = nullptr;
         typedef typename std::remove_reference<T>::type handle_t;
@@ -217,6 +225,16 @@ private:
     {
         if (handle_)
             handle_->destroy();
+    }
+
+    const handle_base & read () const
+    { return *handle_; }
+
+    handle_base & write ()
+    {
+        if (!handle_->unique())
+            handle_ = handle_->clone_into(buffer_);
+        return *handle_;
     }
 
     template <typename T>
