@@ -35,7 +35,7 @@ public:
 
     printable_sbo_cow (const printable_sbo_cow & rhs) :
         handle_ (
-            !rhs.handle_ || rhs.handle_->heap_allocated() ?
+            !rhs.handle_ || heap_allocated(rhs.handle_, rhs.buffer_) ?
             rhs.handle_ :
             handle_ptr(
                 char_ptr(&buffer_) + handle_offset(rhs.handle_, rhs.buffer_)
@@ -94,7 +94,6 @@ private:
     {
         virtual ~handle_base () {}
         virtual handle_base * clone_into (buffer & buf) const = 0;
-        virtual bool heap_allocated () const = 0;
         virtual bool unique () const = 0;
         virtual void add_ref () = 0;
         virtual void destroy () = 0;
@@ -128,9 +127,6 @@ private:
 
         virtual handle_base * clone_into (buffer & buf) const
         { return clone_impl(value_, buf); }
-
-        virtual bool heap_allocated () const
-        { return HeapAllocated; }
 
         virtual bool unique () const
         { return ref_count_ == 1u; }
@@ -191,12 +187,17 @@ private:
         return retval;
     }
 
+    static bool heap_allocated (const handle_base * h, const buffer & b)
+    {
+        return
+            h < handle_ptr(char_ptr(&b)) ||
+            handle_ptr(char_ptr(&b) + sizeof(b)) <= h;
+    }
+
     void swap (handle_base * & rhs_handle, buffer & rhs_buffer)
     {
-        const bool this_heap_allocated =
-            !handle_ || handle_->heap_allocated();
-        const bool rhs_heap_allocated =
-            !rhs_handle || rhs_handle->heap_allocated();
+        const bool this_heap_allocated = heap_allocated(handle_, buffer_);
+        const bool rhs_heap_allocated = heap_allocated(rhs_handle, rhs_buffer);
 
         if (this_heap_allocated && rhs_heap_allocated) {
             std::swap(handle_, rhs_handle);
