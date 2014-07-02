@@ -1,3 +1,4 @@
+// -*- C++ -*-
 #include <copy_on_write.hpp>
 
 namespace value {
