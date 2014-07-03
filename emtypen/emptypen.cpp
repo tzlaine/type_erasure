@@ -23,13 +23,14 @@ struct client_data
     CXCursor current_struct;
     std::string current_struct_prefix;
     // function signature, forwarding call arguments, optional return
-    // keyword, and function name
-    std::vector<std::array<std::string, 4>> member_functions;
+    // keyword, function name, and "const"/"" for function constness
+    std::vector<std::array<std::string, 5>> member_functions;
     bool printed_headers;
     const char * filename;
     bool include_guarded;
     std::string form;
     std::string headers;
+    bool copy_on_write;
 };
 
 std::pair<CXToken*, unsigned int>
@@ -56,20 +57,20 @@ void print_tokens (CXTranslationUnit tu,
     std::pair<CXToken*, unsigned int> tokens = get_tokens(tu, cursor);
 
     const std::string open_angle = "<";
-    const std::string close_angle = ">";
 
     const unsigned int num_tokens =
         tokens.second && tokens_from_include_directive ?
         tokens.second - 1 :
         tokens.second;
-    const char * prev_token = 0;
+    bool open_angle_seen = false;
     for (unsigned int i = 0; i < num_tokens; ++i) {
         CXString spelling = clang_getTokenSpelling(tu, tokens.first[i]);
         const char * token = clang_getCString(spelling);
-        if (i && prev_token != open_angle && token != close_angle)
+        if (!open_angle_seen)
             std::cout << " ";
         std::cout << token;
-        prev_token = token;
+        if (token == open_angle)
+            open_angle_seen = true;
     }
     std::cout << "\n";
 
@@ -152,21 +153,35 @@ std::string struct_prefix (const client_data & data, CXCursor struct_cursor)
     return retval;
 }
 
-std::array<std::string, 4>
+std::array<std::string, 5>
 member_params (const client_data & data, CXCursor cursor)
 {
     std::pair<CXToken*, unsigned int> tokens = get_tokens(data.tu, cursor);
 
     const std::string open_brace = "{";
     const std::string semicolon = ";";
+    const std::string close_paren = ")";
+    const std::string const_token = "const";
 
     std::string str;
+#if 0 // TODO: This is the Clang 3.5 way of doing things...
+    std::string constness = clang_CXXMethod_isConst(cursor) ? "const" : "";
+#else
+    std::string constness;
+#endif
 
+    bool close_paren_seen = false;
     for (unsigned int i = 0; i < tokens.second; ++i) {
         CXString spelling =
             clang_getTokenSpelling(data.tu, tokens.first[i]);
 
         const char * c_str = clang_getCString(spelling);
+
+        if (close_paren_seen && c_str == const_token)
+            constness = "const";
+
+        if (c_str == close_paren)
+            close_paren_seen = true;
 
         if (c_str == open_brace || c_str == semicolon)
             break;
@@ -197,7 +212,7 @@ member_params (const client_data & data, CXCursor cursor)
 
     free_tokens(data.tu, tokens);
 
-    return {str, args, return_str, function_name};
+    return {str, args, return_str, function_name, constness};
 }
 
 void indent (std::vector<std::string> & lines, const client_data & data)
@@ -277,11 +292,20 @@ void close_struct (const client_data & data)
         std::string spacing;
 
         spacing = std::string(expansion_lines[0].second, ' ') + indent(data);
-        nonvirtual_members +=
-            spacing + function[0] + "\n" +
-            spacing + "{ assert(handle_); " + function[2] +
-            "handle_->" + function[3] +
-            "(" + function[1] + " ); }\n";
+
+        if (data.copy_on_write) {
+            nonvirtual_members +=
+                spacing + function[0] + "\n" +
+                spacing + "{ assert(handle_); " + function[2] +
+                (function[4] == "const" ? "read()." : "write().") +
+                function[3] + "(" + function[1] + " ); }\n";
+        } else {
+            nonvirtual_members +=
+                spacing + function[0] + "\n" +
+                spacing + "{ assert(handle_); " + function[2] +
+                "handle_->" + function[3] +
+                "(" + function[1] + " ); }\n";
+        }
 
         spacing = std::string(expansion_lines[1].second, ' ') + indent(data);
         pure_virtual_members +=
@@ -289,7 +313,7 @@ void close_struct (const client_data & data)
 
         spacing = std::string(expansion_lines[2].second, ' ') + indent(data);
         virtual_members +=
-            spacing + function[0] + "\n" +
+            spacing + "virtual " + function[0] + "\n" +
             spacing + "{ " + function[2] +
             "value_." + function[3] +
             "(" + function[1] + " ); }\n";
@@ -423,11 +447,14 @@ int main (int argc, char * argv[])
 
     std::string form_filename = binary_path + RELATIVE_DATA_DIR "form.hpp";
     std::string headers_filename = binary_path + RELATIVE_DATA_DIR "headers.hpp";
+    bool copy_on_write = false;
 
     std::vector<char*> argv_copy(argc);
     std::vector<char*>::iterator argv_it = argv_copy.begin();
     const std::string form_token = "--form";
     const std::string headers_token = "--headers";
+    const std::string long_cow_token = "--copy-on-write";
+    const std::string short_cow_token = "--cow";
     for (int i = 0; i < argc; ++i) {
         if (argv[i] == form_token) {
             ++i;
@@ -447,6 +474,9 @@ int main (int argc, char * argv[])
             }
             headers_filename = argv[i];
             argv_copy.resize(argv_copy.size() - 2);
+        } else if (argv[i] == short_cow_token || argv[i] == long_cow_token) {
+            copy_on_write = true;
+            argv_copy.resize(argv_copy.size() - 1);
         } else {
             *argv_it++ = argv[i];
         }
@@ -495,7 +525,8 @@ int main (int argc, char * argv[])
         filename,
         include_guarded,
         form,
-        headers
+        headers,
+        copy_on_write
     };
 
     tu_cursor = clang_getTranslationUnitCursor(tu);
@@ -504,7 +535,6 @@ int main (int argc, char * argv[])
 
     CXCursorAndRangeVisitor visitor = {tu, visit_includes};
     clang_findIncludesInFile(tu, file, visitor);
-    std::cout << "\n";
 
     clang_visitChildren(tu_cursor, visit, &data);
 
@@ -517,7 +547,7 @@ int main (int argc, char * argv[])
     }
 
     if (include_guarded)
-        std::cout << "\n#endif\n";
+        std::cout << "#endif\n";
 
     clang_disposeTranslationUnit(tu);
     clang_disposeIndex(index);
