@@ -155,16 +155,3 @@ BOOST_AUTO_TEST_CASE(boost_type_erasure_vector_copy_on_write)
     std::cout << "allocations: " << allocations() << "\n\n";
     reset_allocations();
 }
-
-BOOST_AUTO_TEST_CASE(boost_type_erasure_cow_vector)
-{
-    std::cout << "copied vector<any_printable[COW]>{hi_printable, large_printable}" << "\n";
-    std::cout << "allocations: N/A\n\n";
-}
-
-/* Limitations:
-   1 - Each non-specific portion of the API (default and copy ctors, etc.) must be specified in the boost::type_erasure::any<> template instantiation.
-   2 - Arbitrary types cannot be assigned to an any<>; the acceptable types must be explicitly listed.
-   3 - Adapting to const member functions is a bit painful.
-   4 - Compile-time errors will make your eyes bleed.
-*/
