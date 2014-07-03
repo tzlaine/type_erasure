@@ -440,6 +440,31 @@ CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange r
     return CXVisit_Continue;
 }
 
+const std::string long_help_token = "--help";
+const std::string short_help_token = "-h";
+const std::string form_token = "--form";
+const std::string headers_token = "--headers";
+const std::string long_cow_token = "--copy-on-write";
+const std::string short_cow_token = "-c";
+
+void print_help (const char * process_path)
+{
+    std::string process_name = process_path;
+    std::string::size_type pos = process_name.find_last_of("\\/");
+    if (pos != std::string::npos)
+        process_name = process_name.substr(pos + 1);
+    std::cerr
+        << process_name << "\n\n"
+        << "Usage: " << process_name << " [options] [clang-args]\n\n"
+        << "Options:\n"
+        << "-h,--help          Print this help message.\n"
+        << "--form f           Use form 'f' to generate code.\n"
+        << "--headers h        Prepend file 'h' to the generated code.\n"
+        << "-c,--copy-on-write Generate code suitable for a COW implementation.\n"
+        << "\n"
+        ;
+}
+
 int main (int argc, char * argv[])
 {
     std::string binary_path = argv[0];
@@ -451,12 +476,12 @@ int main (int argc, char * argv[])
 
     std::vector<char*> argv_copy(argc);
     std::vector<char*>::iterator argv_it = argv_copy.begin();
-    const std::string form_token = "--form";
-    const std::string headers_token = "--headers";
-    const std::string long_cow_token = "--copy-on-write";
-    const std::string short_cow_token = "--cow";
+
     for (int i = 0; i < argc; ++i) {
-        if (argv[i] == form_token) {
+        if (argv[i] == short_help_token || argv[i] == long_help_token) {
+            print_help(argv[0]);
+            return 0;
+        } else if (argv[i] == form_token) {
             ++i;
             if (argc <= i) {
                 std::cerr << argv[0]
@@ -510,6 +535,11 @@ int main (int argc, char * argv[])
 
     const char * filename =
         clang_getCString(clang_getTranslationUnitSpelling(tu));
+
+    if (!filename || !filename[0]) {
+        print_help(argv[0]);
+        return 1;
+    }
 
     CXFile file = clang_getFile(tu, filename);
 
