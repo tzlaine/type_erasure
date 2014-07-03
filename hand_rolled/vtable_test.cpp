@@ -3,11 +3,7 @@
 #include "hand_rolled_vtable.hpp"
 
 
-#define BOOST_TEST_MODULE TypeErasure
-
-#include <boost/test/included/unit_test.hpp>
-
-BOOST_AUTO_TEST_CASE(hand_rolled)
+int main ()
 {
 #if INSTRUMENT_COPIES
     reset_allocations();
@@ -73,42 +69,42 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
     ECHO(bye_printable bye; printable_vtable ap(std::cref(bye)));
 
 #undef ECHO
-}
 
-BOOST_AUTO_TEST_CASE(hand_rolled_vector)
-{
-    std::cout << "copied vector<printable_vtable>{hi_printable, large_printable}" << "\n";
+    {
+        std::cout << "copied vector<printable_vtable>{hi_printable, large_printable}" << "\n";
 
-    std::vector<printable_vtable> several_printables = {
-        hi_printable{},
-        large_printable{}
-    };
+        std::vector<printable_vtable> several_printables = {
+            hi_printable{},
+            large_printable{}
+        };
 
-    for (const auto & printable : several_printables) {
-        printable.print();
+        for (const auto & printable : several_printables) {
+            printable.print();
+        }
+
+        std::vector<printable_vtable> several_printables_copy = several_printables;
+
+        std::cout << "allocations: " << allocations() << "\n\n";
+        reset_allocations();
     }
 
-    std::vector<printable_vtable> several_printables_copy = several_printables;
+    {
+        std::cout << "copied vector<COW<printable_vtable>>{hi_printable, large_printable}" << "\n";
 
-    std::cout << "allocations: " << allocations() << "\n\n";
-    reset_allocations();
-}
+        std::vector<copy_on_write<printable_vtable>> several_printables = {
+            {hi_printable{}},
+            {large_printable{}}
+        };
 
-BOOST_AUTO_TEST_CASE(hand_rolled_vector_copy_on_write)
-{
-    std::cout << "copied vector<COW<printable_vtable>>{hi_printable, large_printable}" << "\n";
+        for (const auto & printable : several_printables) {
+            printable->print();
+        }
 
-    std::vector<copy_on_write<printable_vtable>> several_printables = {
-        {hi_printable{}},
-        {large_printable{}}
-    };
+        std::vector<copy_on_write<printable_vtable>> several_printables_copy = several_printables;
 
-    for (const auto & printable : several_printables) {
-        printable->print();
+        std::cout << "allocations: " << allocations() << "\n\n";
+        reset_allocations();
     }
 
-    std::vector<copy_on_write<printable_vtable>> several_printables_copy = several_printables;
-
-    std::cout << "allocations: " << allocations() << "\n\n";
-    reset_allocations();
+    return 0;
 }
