@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
         BOOST_CHECK_EQUAL(value_large_lval_copy_count, value_large_const_rval_copy_count);
         BOOST_CHECK_EQUAL(value_large_lval_copy_count, value_large_const_lval_copy_count);
-        BOOST_CHECK(value_large_rval_move_count < value_large_lval_copy_count);
+        BOOST_CHECK(value_large_rval_move_count <= value_large_lval_copy_count);
     }
 
     {
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
         BOOST_CHECK_EQUAL(erased_small_lval_copy_count, erased_small_const_rval_copy_count);
         BOOST_CHECK_EQUAL(erased_small_lval_copy_count, erased_small_const_lval_copy_count);
-        BOOST_CHECK(erased_small_rval_move_count < erased_small_lval_copy_count);
+        BOOST_CHECK(erased_small_rval_move_count <= erased_small_lval_copy_count);
     }
 
     {
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
         BOOST_CHECK_EQUAL(erased_large_lval_copy_count, erased_large_const_rval_copy_count);
         BOOST_CHECK_EQUAL(erased_large_lval_copy_count, erased_large_const_lval_copy_count);
-        BOOST_CHECK(erased_large_rval_move_count < erased_large_lval_copy_count);
+        BOOST_CHECK(erased_large_rval_move_count <= erased_large_lval_copy_count);
     }
 
 
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
         BOOST_CHECK_EQUAL(value_large_lval_copy_count, value_large_const_rval_copy_count);
         BOOST_CHECK_EQUAL(value_large_lval_copy_count, value_large_const_lval_copy_count);
-        BOOST_CHECK(value_large_rval_move_count < value_large_lval_copy_count);
+        BOOST_CHECK(value_large_rval_move_count <= value_large_lval_copy_count);
     }
 
     {
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
         BOOST_CHECK_EQUAL(erased_small_lval_copy_count, erased_small_const_rval_copy_count);
         BOOST_CHECK_EQUAL(erased_small_lval_copy_count, erased_small_const_lval_copy_count);
-        BOOST_CHECK(erased_small_rval_move_count < erased_small_lval_copy_count);
+        BOOST_CHECK(erased_small_rval_move_count <= erased_small_lval_copy_count);
     }
 
     {
@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(hand_rolled)
 
         BOOST_CHECK_EQUAL(erased_large_lval_copy_count, erased_large_const_rval_copy_count);
         BOOST_CHECK_EQUAL(erased_large_lval_copy_count, erased_large_const_lval_copy_count);
-        BOOST_CHECK(erased_large_rval_move_count < erased_large_lval_copy_count);
+        BOOST_CHECK(erased_large_rval_move_count <= erased_large_lval_copy_count);
     }
 
     // SMALL VS. LARGE PERMUTATIONS
