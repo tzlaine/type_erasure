@@ -442,6 +442,7 @@ CXVisitorResult visit_includes (void * context, CXCursor cursor, CXSourceRange r
 
 const std::string long_help_token = "--help";
 const std::string short_help_token = "-h";
+const std::string manual_token = "--manual";
 const std::string form_token = "--form";
 const std::string headers_token = "--headers";
 const std::string long_cow_token = "--copy-on-write";
@@ -458,11 +459,132 @@ void print_help (const char * process_path)
         << "Usage: " << process_name << " [options] [clang-args]\n\n"
         << "Options:\n"
         << "-h,--help          Print this help message.\n"
+        << "--manual           Print a much longer manual to the terminal.\n"
         << "--form f           Use form 'f' to generate code.\n"
         << "--headers h        Prepend file 'h' to the generated code.\n"
         << "-c,--copy-on-write Generate code suitable for a COW implementation.\n"
         << "\n"
         ;
+}
+
+void print_manual ()
+{
+    std::string manual_text =
+R"(emtypen Users' Manual
+
+emtypen generates type erasure C++ code.  It does this to automate much of the
+drudgery of creating such types by hand.
+
+Some of this might not make sense if you don't know how type erasure works.
+See http://tzlaine.github.io/type_erasure if this is the case.
+
+At the highest level of abstraction, emptypen takes three input files
+containing code and generates a single output source file.  It uses libclang,
+a wrapper around the Clang front end, to do this.
+
+The three input files are the "archetype" file, the "form" file, and the
+"header" file.  The archetype must always be specified.  There are implicit
+defaults for the form and header.
+
+
+The Archetype File
+
+The archetype file contains one or more structs, struct templates, classes
+and/or class templates (hereafter generically referred to just as
+"archetypes"). Archetypes that are templates produce generated types
+("erased types" hereafter) that are also templates.
+
+Each archetype defines the public API that the erased type requires of all the
+types that it can hold.  The erased type will also contain all the
+contructors, assignment operators and other operators defined in the form
+provided.  It is an error to define any of these fundamental operations in the
+archetype; they go in the form instead.  Here is an example archetype file:
+
+#ifndef LOGGABLE_INTERFACE_INCLUDED__
+#define LOGGABLE_INTERFACE_INCLUDED__
+
+#include <iostream>
+
+
+struct loggable
+{
+    std::ostream & log (std::ostream & os) const;
+};
+
+#endif
+
+Note that this is a complete and valid C++ header.  You can syntax check it
+with your favorite compiler if you like.  emtypen will preserve the include
+guard, if any, include directives, if any, and the namespaces in which the
+archetypes are declared, if any.
+
+IMPORTANT: Give each function parameter a name.  If the parameters in an
+archetype's functions are left unnamed, the generated forwarding functions
+will be malformed.
+
+Due to libclang limitations, macros and comments are not preserved.
+
+Declarations other than the ones listed above are not preserved (for instance,
+function declarations).
+
+
+The Form File
+
+The form file contains a template-like form that gets filled in with
+repetitive code generated from an archetype.  The form will be repeated in the
+output once for each archetype.
+
+There are certain magic strings in the form that are replaced with generated
+code.  If you want to create a new form or modify an existing one, you need to
+include:
+
+%struct_prefix% - This is replaced with the tokens that introduce the
+archetype by name, along with "struct", "class", "template <...>" etc.
+
+%struct_name% - This is replaced with only the archetype's name.
+
+%nonvirtual_members% - This is the generated portion of the API of the erased
+type.  It is replaced with a version of the functions in the archetype that
+forwards each call to the virtual functions in the handle object.
+
+%pure_virtual_members% - This is the generated portion of the API of the
+handle base class. It is replaced with pure virtual declarations of the
+functions in the archetype.
+
+%virtual_members% - This is the generated portion of the API of the derived
+handle class. It is replaced with virtual function definitions of the
+functions in the archetype that forward to the underlying held value.
+
+Within the constraints implied by the pattern of code generation outlined
+above, the form can include anything you like.
+
+However, the forwarding function code generation needs to know if your form
+uses copy-on-write in order to perform the copy on mutating function calls.
+If you specify on the command line that emtypen should generate code usable
+with a copy-on-write form (see emtypen --help for details), the generated code
+will rely on two functions that must be in the form: read() and write().  They
+must return const and non-const references respectively to the underlying
+handle.  They may be public or private.  read() will be called in every const
+member function in the archetype's API, and write() will be called in every
+non-const member function.
+
+
+The Header file
+
+The header file should contain all headers, macros, forward declarations,
+etc. required by the code in the form.  Headers required by the code in an
+archetype file should be included there, not in the header file.
+
+
+Command Line Options
+
+An alternate form file and/or header file can be specified on the command
+line.  Also, you will probably need to generate slightly different code for
+forms that use copy-on-write.  See emtypen --help for details.
+
+)";
+
+    std::cout << manual_text;
 }
 
 int main (int argc, char * argv[])
@@ -480,6 +602,9 @@ int main (int argc, char * argv[])
     for (int i = 0; i < argc; ++i) {
         if (argv[i] == short_help_token || argv[i] == long_help_token) {
             print_help(argv[0]);
+            return 0;
+        } else if (argv[i] == manual_token) {
+            print_manual();
             return 0;
         } else if (argv[i] == form_token) {
             ++i;
