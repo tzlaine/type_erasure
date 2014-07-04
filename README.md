@@ -25,9 +25,13 @@ standard.
 
 ## Presentation
 
-The CppCon 2014 presentation can be found in the `presentation` directory, and
-is self-contained.  Point your browser at `index.html` and get ready to
-rumble.  I don't know why I said that last part.
+If you want to look at the presentation slides live in the internet, go to:
+
+http://tzlaine.github.io/type_erasure
+
+Otherwise, the CppCon 2014 presentation can be found in `index.html`, with the
+supporting files found in the `presentation` directory.  Point your browser at
+`index.html` and get ready to rumble.  I don't know why I said that last part.
 
 
 ## `emptypen`

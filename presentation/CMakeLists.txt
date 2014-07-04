@@ -11,7 +11,7 @@ add_custom_command(
     COMMAND
         code_sampler
         ${CMAKE_CURRENT_SOURCE_DIR}/index.html.in
-        ${CMAKE_CURRENT_SOURCE_DIR}/index.html
+        ${CMAKE_SOURCE_DIR}/index.html
         ${filenames}
     DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/index.html.in
