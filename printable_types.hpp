@@ -30,6 +30,12 @@ void * operator new[] (std::size_t size)
     ++allocations();
     return malloc(size);
 }
+
+void operator delete (void * ptr)
+{ free(ptr); }
+
+void operator delete[] (void * ptr)
+{ free(ptr); }
 #endif
 
 struct hi_printable
