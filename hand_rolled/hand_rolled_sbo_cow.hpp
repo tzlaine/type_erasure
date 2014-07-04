@@ -13,7 +13,7 @@
 #include <utility>
 
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER == 1800
 #define noexcept
 #define alignof __alignof
 #endif
