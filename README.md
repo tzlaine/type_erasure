@@ -25,7 +25,7 @@ standard.
 
 ## Presentation
 
-If you want to look at the presentation slides live in the internet, go to:
+If you want to look at the presentation slides live in the tubes, go to:
 
 http://tzlaine.github.io/type_erasure
 
@@ -64,6 +64,12 @@ not want to build these items, it won't break anything not to define
 `emptypen` requires libclang headers and libs.  If you want to build
 `emptypen`, define the CMake variable `CLANG_ROOT` (see below).  If you do not
 want to build `emptypen`, it won't break anything not to define `CLANG_ROOT`.
+At the time of this writing, there are no pre-built Clang binaries built with
+Visual Studio 2013, but it's now very easy to build Clang from source with
+Visual Studio.  There's a small wrinkle, however.  CMake doesn't like import
+libs with extensions other than `.lib`, and `libclang`'s is built as
+`libclang.exp`.  There's probably some obscure CMake incantation that fixes
+this, but it's easier just to rename `libclang.exp` to `libclang.lib`.
 
 Here are the specific steps to build this repo with CMake.  It is assumed that
 this repo has been cloned into a directory caled "type_erasure":
