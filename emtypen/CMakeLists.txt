@@ -41,12 +41,25 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/form.hpp
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_archetypes.hpp
                ${CMAKE_BINARY_DIR})
 
+if (APPLE)
+    if (true)
+        set(CPACK_GENERATOR STGZ) 
+    else ()
+        set(CPACK_GENERATOR DragNDrop) 
+        set(drag_and_drop_prefix emtypen/) 
+    endif ()
+elseif (CMAKE_HOST_WIN32)
+    set(CPACK_GENERATOR NSIS)
+else ()
+    set(CPACK_GENERATOR STGZ)
+endif ()
+
 install(TARGETS emptypen
-        RUNTIME DESTINATION ${install_bin_dir})
+        RUNTIME DESTINATION ${drag_and_drop_prefix}${install_bin_dir})
 install(FILES ${clang_lib_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}clang${CMAKE_SHARED_LIBRARY_SUFFIX}
-        DESTINATION ${install_lib_dir})
+        DESTINATION ${drag_and_drop_prefix}${install_lib_dir})
 install(FILES headers.hpp form.hpp
-        DESTINATION ${install_data_dir})
+        DESTINATION ${drag_and_drop_prefix}${install_data_dir})
 
 set(CPACK_PACKAGE_VERSION 1.0.0) 
 set(CPACK_PACKAGE_VENDOR "T. Zachary Laine")
@@ -54,12 +67,8 @@ set(CPACK_PACKAGE_CONTACT ${CPACK_PACKAGE_VENDOR})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A tool to generate type-erased types from archetypes.")
 set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_HOME_DIRECTORY}/COPYING)
 set(CPACK_SYSTEM_NAME ${CMAKE_SYSTEM_NAME})
-set(CPACK_PACKAGE_NAME ${CMAKE_PROJECT_NAME})
+set(CPACK_PACKAGE_NAME emtypen)
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 string(TOLOWER ${CPACK_PACKAGE_FILE_NAME} CPACK_PACKAGE_FILE_NAME)
-if (CMAKE_HOST_WIN32)
-    set(CPACK_GENERATOR "NSIS")
-endif ()
-set(CPACK_SOURCE_GENERATOR "ZIP")
 
 include(CPack)
