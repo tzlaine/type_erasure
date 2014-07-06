@@ -68,8 +68,8 @@ At the time of this writing, there are no pre-built Clang binaries built with
 Visual Studio 2013, but it's now very easy to build Clang from source with
 Visual Studio.  There's a small wrinkle, however.  CMake doesn't like import
 libs with extensions other than `.lib`, and `libclang`'s is built as
-`libclang.exp`.  There's probably some obscure CMake incantation that fixes
-this, but it's easier just to rename `libclang.exp` to `libclang.lib`.
+`libclang.imp`.  There's probably some obscure CMake incantation that fixes
+this, but it's easier just to rename `libclang.imp` to `libclang.lib`.
 
 Here are the specific steps to build this repo with CMake.  It is assumed that
 this repo has been cloned into a directory caled "type_erasure":
