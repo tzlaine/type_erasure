@@ -6,6 +6,7 @@ set(CLANG_ROOT
 
 set(clang_include_dir ${CLANG_ROOT}/include)
 set(clang_lib_dir ${CLANG_ROOT}/lib)
+set(clang_bin_dir ${CLANG_ROOT}/bin)
 
 if (EXISTS ${clang_include_dir}/clang-c/Index.h)
     message("-- Configuring emptypen")
@@ -54,9 +55,15 @@ else ()
     set(CPACK_GENERATOR STGZ)
 endif ()
 
+if (UNIX)
+    set(clang_dll_dir ${clang_lib_dir})
+else ()
+    set(clang_dll_dir ${clang_bin_dir})
+endif ()
+
 install(TARGETS emptypen
         RUNTIME DESTINATION ${drag_and_drop_prefix}${install_bin_dir})
-install(FILES ${clang_lib_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}clang${CMAKE_SHARED_LIBRARY_SUFFIX}
+install(FILES ${clang_dll_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}${libclang_name}${CMAKE_SHARED_LIBRARY_SUFFIX}
         DESTINATION ${drag_and_drop_prefix}${install_lib_dir})
 install(FILES headers.hpp form.hpp
         DESTINATION ${drag_and_drop_prefix}${install_data_dir})
