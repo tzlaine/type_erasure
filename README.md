@@ -71,6 +71,11 @@ libs with extensions other than `.lib`, and `libclang`'s is built as
 `libclang.imp`.  There's probably some obscure CMake incantation that fixes
 this, but it's easier just to rename `libclang.imp` to `libclang.lib`.
 
+If you build Clang from sources, it will make your life much easier to install
+it somewhere, and then set `CLANG_ROOT` to the installed location.  This will
+set up the directory structure expected by the `emptypen` build; the structure
+of the build products for the built-in-place Clang is different.
+
 Here are the specific steps to build this repo with CMake.  It is assumed that
 this repo has been cloned into a directory caled "type_erasure":
 
