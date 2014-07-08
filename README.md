@@ -43,6 +43,12 @@ library (a wrapper around the Clang front end) what is in the given C++
 header.  Detailed usage instructions can be found by passing `--help` or
 `--manual` to `emtypen`.
 
+A pre-built Windows installer is available at:
+http://freeorion.org/emtypen-1.0.0-windows.exe
+
+A pre-built Mac OS (Mavericks only) installer is available at:
+http://freeorion.org/emtypen-1.0.0-darwin.sh
+
 
 ## Build Instructions
 
