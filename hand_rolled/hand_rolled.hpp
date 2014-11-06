@@ -30,7 +30,7 @@ public:
     printable (T value) :
         handle_ (
             new handle<typename std::remove_reference<T>::type>(
-                std::forward<T>(value)
+                std::move(value)
             )
         )
     {}
@@ -47,7 +47,7 @@ public:
     template <typename T>
     printable & operator= (T value)
     {
-        printable temp(std::forward<T>(value));
+        printable temp(std::move(value));
         std::swap(temp, *this);
         return *this;
     }

@@ -26,7 +26,7 @@ public:
     printable_cow (T value) :
         handle_ (
             std::make_shared<handle<typename std::remove_reference<T>::type>>(
-                std::forward<T>(value)
+                std::move(value)
             )
         )
     {}
@@ -35,7 +35,7 @@ public:
     template <typename T>
     printable_cow & operator= (T value)
     {
-        printable_cow temp(std::forward<T>(value));
+        printable_cow temp(std::move(value));
         std::swap(temp.handle_, handle_);
         return *this;
     }

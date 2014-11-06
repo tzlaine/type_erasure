@@ -11,7 +11,7 @@ public:
     %struct_name% (T value) :
         handle_ (nullptr),
         buffer_ {}
-    { handle_ = clone_impl(std::forward<T>(value), buffer_); }
+    { handle_ = clone_impl(std::move(value), buffer_); }
 
     %struct_name% (const %struct_name% & rhs) :
         handle_ (
@@ -37,7 +37,7 @@ public:
     %struct_name% & operator= (T value)
     {
         reset();
-        handle_ = clone_impl(std::forward<T>(value), buffer_);
+        handle_ = clone_impl(std::move(value), buffer_);
         return *this;
     }
 
@@ -151,10 +151,10 @@ private:
             std::align(alignment, size, buf_ptr, buf_size) :
             nullptr;
         if (buf_ptr) {
-            new (buf_ptr) handle<handle_t, false>(std::forward<T>(value));
+            new (buf_ptr) handle<handle_t, false>(std::move(value));
             retval = static_cast<handle_base *>(buf_ptr);
         } else {
-            retval = new handle<handle_t, true>(std::forward<T>(value));
+            retval = new handle<handle_t, true>(std::move(value));
         }
         return retval;
     }

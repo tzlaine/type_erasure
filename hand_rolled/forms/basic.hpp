@@ -8,7 +8,7 @@ public:
     %struct_name% (T value) :
         handle_ (
             new handle<typename std::remove_reference<T>::type>(
-                std::forward<T>(value)
+                std::move(value)
             )
         )
     {}
@@ -25,7 +25,7 @@ public:
     template <typename T>
     %struct_name% & operator= (T value)
     {
-        %struct_name% temp(std::forward<T>(value));
+        %struct_name% temp(std::move(value));
         std::swap(temp, *this);
         return *this;
     }

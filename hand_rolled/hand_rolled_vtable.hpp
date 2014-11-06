@@ -79,7 +79,7 @@ public:
     template <typename T>
     printable_vtable & operator= (T value)
     {
-        printable_vtable temp(std::forward<T>(value));
+        printable_vtable temp(std::move(value));
         std::swap(temp, *this);
         return *this;
     }
