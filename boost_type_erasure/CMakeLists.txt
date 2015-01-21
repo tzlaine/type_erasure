@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.0)
-
 # As of Boost 1.55.0, Boost.TypeErasure does not support VS 2013.
 if (Boost_FOUND)
    if (NOT MSVC12)

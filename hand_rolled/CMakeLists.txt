@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.0)
-
 if (Boost_FOUND)
    include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                        ${Boost_INCLUDE_DIR})
