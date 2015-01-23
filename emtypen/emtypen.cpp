@@ -3,7 +3,9 @@
 #include <clang-c/Index.h>
 
 #include <array>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 
@@ -11,6 +13,7 @@ namespace {
 
     const unsigned int indent_spaces = 4;
     const std::string indentation(indent_spaces, ' ');
+    std::stringstream os;
 
 }
 
@@ -67,12 +70,12 @@ void print_tokens (CXTranslationUnit tu,
         CXString spelling = clang_getTokenSpelling(tu, tokens.first[i]);
         const char * token = clang_getCString(spelling);
         if (!open_angle_seen)
-            std::cout << " ";
-        std::cout << token;
+            os << " ";
+        os << token;
         if (token == open_angle)
             open_angle_seen = true;
     }
-    std::cout << "\n";
+    os << "\n";
 
     free_tokens(tu, tokens);
 }
@@ -103,9 +106,9 @@ void print_lines (const client_data & data,
 {
     for (unsigned int i = 0; i < num_lines; ++i) {
         if (lines[i])
-            std::cout << indent(data) << indentation << lines[i] << "\n";
+            os << indent(data) << indentation << lines[i] << "\n";
         else
-            std::cout << "\n";
+            os << "\n";
     }
 }
 
@@ -114,7 +117,7 @@ void print_headers (client_data & data)
     if (data.printed_headers)
         return;
 
-    std::cout << data.headers << "\n";
+    os << data.headers << "\n";
 
     data.printed_headers = true;
 }
@@ -330,15 +333,15 @@ void close_struct (const client_data & data)
     lines[expansion_lines[1].first] = pure_virtual_members;
     lines[expansion_lines[2].first] = virtual_members;
 
-    std::cout << "\n";
+    os << "\n";
     for (std::string & line : lines) {
-        std::cout << line << "\n";
+        os << line << "\n";
     }
 }
 
 void open_namespace (const client_data & data, CXCursor namespace_)
 {
-    std::cout
+    os
         << "\n"
         << indent(data)
         << "namespace "
@@ -347,7 +350,7 @@ void open_namespace (const client_data & data, CXCursor namespace_)
 }
 
 void close_namespace (const client_data & data)
-{ std::cout << "\n" << indent(data) << "}\n"; }
+{ os << "\n" << indent(data) << "}\n"; }
 
 CXChildVisitResult
 visit_preprocessor_defines (CXCursor cursor, CXCursor parent, CXClientData data_)
@@ -365,7 +368,7 @@ visit_preprocessor_defines (CXCursor cursor, CXCursor parent, CXClientData data_
         return CXChildVisit_Continue;
     } else if (kind == CXCursor_MacroDefinition) {
         const char * guard = clang_getCString(clang_getCursorSpelling(cursor));
-        std::cout << "#ifndef " << guard << "\n"
+        os << "#ifndef " << guard << "\n"
                   << "#define " << guard << "\n"
                   << "\n";
         return CXChildVisit_Break;
@@ -450,6 +453,8 @@ const std::string form_token = "--form";
 const std::string headers_token = "--headers";
 const std::string long_cow_token = "--copy-on-write";
 const std::string short_cow_token = "-c";
+const std::string long_out_file_token = "--out-file";
+const std::string short_out_file_token = "-o";
 
 void print_help (const char * process_path)
 {
@@ -466,6 +471,7 @@ void print_help (const char * process_path)
         << "--form f           Use form 'f' to generate code.\n"
         << "--headers h        Prepend file 'h' to the generated code.\n"
         << "-c,--copy-on-write Generate code suitable for a COW implementation.\n"
+        << "-o,--out-file f    Write output to given file.\n"
         << "\n"
         ;
 }
@@ -598,6 +604,7 @@ int main (int argc, char * argv[])
     std::string form_filename = binary_path + RELATIVE_DATA_DIR "form.hpp";
     std::string headers_filename = binary_path + RELATIVE_DATA_DIR "headers.hpp";
     bool copy_on_write = false;
+    std::string out_file;
 
     std::vector<char*> argv_copy(argc);
     std::vector<char*>::iterator argv_it = argv_copy.begin();
@@ -630,6 +637,15 @@ int main (int argc, char * argv[])
         } else if (argv[i] == short_cow_token || argv[i] == long_cow_token) {
             copy_on_write = true;
             argv_copy.resize(argv_copy.size() - 1);
+        } else if (argv[i] == short_out_file_token || argv[i] == long_out_file_token) {
+            ++i;
+            if (argc <= i) {
+                std::cerr << argv[0]
+                          << ": Out-file must be specified as -o [filename] or --out-file [filename].\n";
+                return 1;
+            }
+            out_file = argv[i];
+            argv_copy.resize(argv_copy.size() - 2);
         } else {
             *argv_it++ = argv[i];
         }
@@ -705,7 +721,14 @@ int main (int argc, char * argv[])
     }
 
     if (include_guarded)
-        std::cout << "#endif\n";
+        os << "#endif\n";
+
+    if (out_file.empty()) {
+        std::cout << os.str();
+    } else {
+        std::ofstream ofs(out_file.c_str());
+        ofs << os.str();
+    }
 
     clang_disposeTranslationUnit(tu);
     clang_disposeIndex(index);
