@@ -9,7 +9,7 @@
 template <typename T>
 struct copy_on_write
 {
-    using value_type = T;
+    typedef T value_type;
 
     copy_on_write ()
     {
@@ -84,7 +84,7 @@ struct copy_on_write
     { return !(lhs < rhs); }
 
 private:
-    using impl = std::shared_ptr<T>;
+    typedef std::shared_ptr<T> impl;
 
     static void make_default ()
     { default_s = std::make_shared<T>(); }

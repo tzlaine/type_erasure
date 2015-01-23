@@ -1,3 +1,3 @@
 #include "hand_rolled_vtable.hpp"
-using erased_type = printable_vtable;
+typedef printable_vtable erased_type;
 #include "coverage.ipp"

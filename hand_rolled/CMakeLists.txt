@@ -4,13 +4,13 @@ if (Boost_FOUND)
 
    add_executable(hand_rolled_test basic_test.cpp)
    add_executable(hand_rolled_cow_test cow_test.cpp)
-   add_executable(hand_rolled_vtable_test vtable_test.cpp)
+#   add_executable(hand_rolled_vtable_test vtable_test.cpp)
    add_executable(hand_rolled_sbo_test sbo_test.cpp)
    add_executable(hand_rolled_sbo_cow_test sbo_cow_test.cpp)
 
    add_executable(coverage_hand_rolled coverage_hand_rolled.cpp)
    add_executable(coverage_hand_rolled_cow coverage_hand_rolled_cow.cpp)
-   add_executable(coverage_hand_rolled_vtable coverage_hand_rolled_vtable.cpp)
+#   add_executable(coverage_hand_rolled_vtable coverage_hand_rolled_vtable.cpp)
    add_executable(coverage_hand_rolled_sbo coverage_hand_rolled_sbo.cpp)
    add_executable(coverage_hand_rolled_sbo_cow coverage_hand_rolled_sbo_cow.cpp)
 

@@ -5,7 +5,7 @@ project(type_erasure CXX)
 find_package(Boost)
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER MATCHES clang OR UNIX OR MINGW OR MSYS OR CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++0x")
 endif ()
 
 if (UNIX)
@@ -17,6 +17,6 @@ endif ()
 include_directories(${CMAKE_SOURCE_DIR})
 
 add_subdirectory(hand_rolled)
-add_subdirectory(boost_type_erasure)
+#add_subdirectory(boost_type_erasure)
 add_subdirectory(emtypen)
 add_subdirectory(presentation)

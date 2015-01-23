@@ -212,7 +212,10 @@ member_params (const client_data & data, CXCursor cursor)
 
     free_tokens(data.tu, tokens);
 
-    return {str, args, return_str, function_name, constness};
+    std::array<std::string, 5> retval =
+        {str, args, return_str, function_name, constness};
+
+    return retval;
 }
 
 void indent (std::vector<std::string> & lines, const client_data & data)

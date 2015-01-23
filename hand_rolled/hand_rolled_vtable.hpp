@@ -23,13 +23,13 @@ private:
     static void * clone_impl (void * value)
     { return new ValueType(*static_cast<ValueType*>(value)); }
 
-    using clone_wrapper_type = void * (*) (void *);
+    typedef void * (*clone_wrapper_type) (void *);
 
     template <typename ValueType>
     static void delete_impl (void * value)
     { delete static_cast<ValueType*>(value); }
 
-    using delete_wrapper_type = void (*) (void *);
+    typedef void (*delete_wrapper_type) (void *);
 
     template <typename ValueType>
     struct print_wrapper
@@ -45,7 +45,7 @@ private:
         { static_cast<std::reference_wrapper<ValueType>*>(value)->get().print(); }
     };
 
-    using print_wrapper_type = void (*) (void *);
+    typedef void (*print_wrapper_type) (void *);
 
 public:
     // Contructors
@@ -53,14 +53,12 @@ public:
 
     template <typename T>
     printable_vtable (T value) :
-        vtable_ ({
-            (void_function_type)(&clone_impl<T>),
-            (void_function_type)(&delete_impl<T>),
-            (void_function_type)(&print_wrapper<T>::exec)
-        }),
         get_value_ptr_ (&get_value_ptr<sizeof(value_) < sizeof(T)>),
         value_ (0)
     {
+        vtable_[0] = (void_function_type)(&clone_impl<T>);
+        vtable_[1] = (void_function_type)(&delete_impl<T>);
+        vtable_[2] = (void_function_type)(&print_wrapper<T>::exec);
         if (sizeof(T) <= sizeof(value_))
             new (&value_) T(std::move(value));
         else
@@ -116,7 +114,7 @@ public:
     }
 
 private:
-    using get_value_ptr_type = void * (*) (const printable_vtable *);
+    typedef void * (*get_value_ptr_type) (const printable_vtable *);
 
     template <bool FromHeap>
     static void * get_value_ptr (const printable_vtable * _this)
@@ -135,7 +133,7 @@ private:
         }
     }
 
-    using void_function_type = void (*) ();
+    typedef void (*void_function_type) ();
 
     std::array<void_function_type, 3> vtable_;
     get_value_ptr_type get_value_ptr_;

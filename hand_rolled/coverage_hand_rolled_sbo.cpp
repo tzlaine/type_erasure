@@ -1,3 +1,3 @@
 #include "hand_rolled_sbo.hpp"
-using erased_type = printable_sbo;
+typedef printable_sbo erased_type;
 #include "coverage.ipp"

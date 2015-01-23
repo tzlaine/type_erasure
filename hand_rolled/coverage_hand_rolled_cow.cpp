@@ -1,3 +1,3 @@
 #include "hand_rolled_cow.hpp"
-using erased_type = printable_cow;
+typedef printable_cow erased_type;
 #include "coverage.ipp"

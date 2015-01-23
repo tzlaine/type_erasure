@@ -1,7 +1,7 @@
 #define ANYTHING_WITH_A_VALUE 1
 #include "anything.hpp"
 
-using magic_type = anything;
+typedef anything magic_type;
 
 // sample(wanted_interface)
 // No coupling!

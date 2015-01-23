@@ -218,7 +218,7 @@ private:
         const std::size_t alignment = alignof(handle<handle_t, false>);
         const std::size_t size = sizeof(handle<handle_t, false>);
         const bool memcopyable =
-            std::is_trivially_destructible<typename std::remove_cv<T>::type>();
+            std::has_trivial_destructor<typename std::remove_cv<T>::type>();
         buf_ptr =
             memcopyable ?
             std::align(alignment, size, buf_ptr, buf_size) :
