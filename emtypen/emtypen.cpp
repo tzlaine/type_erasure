@@ -478,7 +478,7 @@ drudgery of creating such types by hand.
 Some of this might not make sense if you don't know how type erasure works.
 See http://tzlaine.github.io/type_erasure if this is the case.
 
-At the highest level of abstraction, emptypen takes three input files
+At the highest level of abstraction, emtypen takes three input files
 containing code and generates a single output source file.  It uses libclang,
 a wrapper around the Clang front end, to do this.
 

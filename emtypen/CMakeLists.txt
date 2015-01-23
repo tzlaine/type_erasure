@@ -7,9 +7,9 @@ set(clang_lib_dir ${CLANG_ROOT}/lib)
 set(clang_bin_dir ${CLANG_ROOT}/bin)
 
 if (EXISTS ${clang_include_dir}/clang-c/Index.h)
-    message("-- Configuring emptypen")
+    message("-- Configuring emtypen")
 else ()
-    message("-- Skipping emptypen build (due to lack of libclang headers)")
+    message("-- Skipping emtypen build (due to lack of libclang headers)")
     return()
 endif ()
 
@@ -19,7 +19,7 @@ link_directories(${clang_lib_dir})
 if (UNIX)
     set(install_bin_dir bin)
     set(install_lib_dir lib)
-    set(install_data_dir share/emptypen)
+    set(install_data_dir share/emtypen)
     set(libclang_name clang)
     add_definitions(-DRELATIVE_DATA_DIR=\"../${install_data_dir}/\")
 else ()
@@ -30,8 +30,8 @@ else ()
     add_definitions(-DRELATIVE_DATA_DIR=\"\")
 endif ()
 
-add_executable(emptypen emptypen.cpp)
-target_link_libraries(emptypen PRIVATE ${libclang_name})
+add_executable(emtypen emtypen.cpp)
+target_link_libraries(emtypen ${libclang_name})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/headers.hpp
                ${CMAKE_BINARY_DIR}/${install_data_dir}/headers.hpp)
@@ -59,7 +59,7 @@ else ()
     set(clang_dll_dir ${clang_bin_dir})
 endif ()
 
-install(TARGETS emptypen
+install(TARGETS emtypen
         RUNTIME DESTINATION ${drag_and_drop_prefix}${install_bin_dir})
 install(FILES ${clang_dll_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}${libclang_name}${CMAKE_SHARED_LIBRARY_SUFFIX}
         DESTINATION ${drag_and_drop_prefix}${install_lib_dir})

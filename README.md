@@ -7,7 +7,7 @@ type, for reference.
 
 - Second, it includes the "Type Erasure" presentation given at CppCon 2014.
 
-- Third, it contains the `emptypen` tool, which generates type erasure code
+- Third, it contains the `emtypen` tool, which generates type erasure code
 based on a user-supplied implementation form.
 
 Skip to the relevant section below, depending on what you came here for.
@@ -34,9 +34,9 @@ supporting files found in the `presentation` directory.  Point your browser at
 `index.html` and get ready to rumble.  I don't know why I said that last part.
 
 
-## `emptypen`
+## `emtypen`
 
-`emptypen` generates C++ code for one or more "erased types" (types that can
+`emtypen` generates C++ code for one or more "erased types" (types that can
 hold anything that fits a given interface) from a C++ header that defines the
 required interface(s).  It performs this magic by asking the `libclang`
 library (a wrapper around the Clang front end) what is in the given C++
@@ -65,9 +65,9 @@ these items, define the CMake variable `BOOST_ROOT` (see below).  If you do
 not want to build these items, it won't break anything not to define
 `BOOST_ROOT`.
 
-`emptypen` requires libclang headers and libs.  If you want to build
-`emptypen`, define the CMake variable `CLANG_ROOT` (see below).  If you do not
-want to build `emptypen`, it won't break anything not to define `CLANG_ROOT`.
+`emtypen` requires libclang headers and libs.  If you want to build
+`emtypen`, define the CMake variable `CLANG_ROOT` (see below).  If you do not
+want to build `emtypen`, it won't break anything not to define `CLANG_ROOT`.
 At the time of this writing, there are no pre-built Clang binaries built with
 Visual Studio 2013, but it's now very easy to build Clang from source with
 Visual Studio.  There's a small wrinkle, however.  CMake doesn't like import
@@ -77,7 +77,7 @@ this, but it's easier just to rename `libclang.imp` to `libclang.lib`.
 
 If you build Clang from sources, it will make your life much easier to install
 it somewhere, and then set `CLANG_ROOT` to the installed location.  This will
-set up the directory structure expected by the `emptypen` build; the structure
+set up the directory structure expected by the `emtypen` build; the structure
 of the build products for the built-in-place Clang is different.
 
 Here are the specific steps to build this repo with CMake.  It is assumed that
