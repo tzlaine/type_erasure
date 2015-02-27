@@ -9,22 +9,8 @@
 inline std::string file_slurp (const std::string & filename)
 {
     std::string retval;
-
     std::ifstream ifs(filename);
-    ifs.seekg(0, std::ifstream::end);
-    if (0 < ifs.tellg())
-        retval.resize(ifs.tellg());
-    ifs.seekg(0);
-
-    const std::streamsize read_size = 64 * 1024; // 64k per read
-    char* retval_pos = &retval[0];
-    std::streamsize bytes_read = 0;
-    do {
-        ifs.read(retval_pos, read_size);
-        bytes_read = ifs.gcount();
-        retval_pos += bytes_read;
-    } while (bytes_read == read_size);
-
+    std::getline(ifs, retval, '\0');
     return retval;
 }
 
