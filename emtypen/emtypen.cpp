@@ -366,8 +366,8 @@ visit_preprocessor_defines (CXCursor cursor, CXCursor parent, CXClientData data_
     } else if (kind == CXCursor_MacroDefinition) {
         const char * guard = clang_getCString(clang_getCursorSpelling(cursor));
         os << "#ifndef " << guard << "\n"
-                  << "#define " << guard << "\n"
-                  << "\n";
+           << "#define " << guard << "\n"
+           << "\n";
         return CXChildVisit_Break;
     }
     return CXChildVisit_Recurse;
