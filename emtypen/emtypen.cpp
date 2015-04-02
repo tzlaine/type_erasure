@@ -105,7 +105,7 @@ void print_lines (const client_data & data,
                   std::size_t num_lines)
 {
     for (unsigned int i = 0; i < num_lines; ++i) {
-        if (lines[i])
+        if (lines[i] && lines[i][0])
             os << indent(data) << indentation << lines[i] << "\n";
         else
             os << "\n";
