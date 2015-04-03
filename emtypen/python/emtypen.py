@@ -11,9 +11,6 @@ import sys
 indent_spaces = 4
 indentation = ' ' * indent_spaces
 output = ['']
-null_cursor = clang.cindex.conf.lib.clang_getNullCursor()
-
-from_main_file = clang.cindex.conf.lib.clang_Location_isFromMainFile
 
 class client_data:
     def __init__(self):
@@ -31,8 +28,6 @@ class client_data:
         self.form_lines = []
         self.headers = ''
         self.copy_on_write = False
-
-data = client_data()
 
 def get_tokens (tu, cursor):
     return [x for x in tu.get_tokens(extent=cursor.extent)]
@@ -104,7 +99,7 @@ def member_params (cursor):
     const_token = 'const'
 
     str = ''
-    constness = cursor.is_const_method() and 'const' or ''
+    constness = ''
 
     close_paren_seen = False
     for i in range(len(tokens)):
@@ -167,7 +162,6 @@ def close_struct ():
     lines = data.form_lines
 
     expansion_lines = find_expansion_lines(lines)
-    print expansion_lines
 
     lines = map(
         lambda line: line.format(
@@ -429,13 +423,22 @@ if '--manual' in sys.argv:
 parser = argparse.ArgumentParser(description='Generates type erased C++ code.')
 parser.add_argument('--form', type=str, required=True, help='form used to generate code')
 parser.add_argument('--headers', type=str, required=False, help='file containing headers to prepend to the generated code')
-parser.add_argument('--manual', type=str, required=False, help='print a much longer manual to the terminal')
 parser.add_argument('--copy-on-write', type=str, required=False, help='generate code suitable for a COW implementation')
 parser.add_argument('--out-file', type=str, required=False, help='write output to given file')
+parser.add_argument('--clang-path', type=str, required=False, help='path to libclang library')
+parser.add_argument('--manual', action='store_true', required=False, help='print a much longer manual to the terminal')
 parser.add_argument('file', type=str, help='the input file containing archetypes')
 parser.add_argument('clang_args', metavar='Clang-arg', type=str, nargs=argparse.REMAINDER,
                     help='additional args to pass to Clang')
 args = parser.parse_args()
+
+if args.clang_path:
+    clang.cindex.Config.set_library_path(args.clang_path)
+
+null_cursor = clang.cindex.conf.lib.clang_getNullCursor()
+from_main_file = clang.cindex.conf.lib.clang_Location_isFromMainFile
+
+data = client_data()
 
 data.form = prepare_form(open(args.form).read())
 data.form_lines = prepare_form(open(args.form).readlines())

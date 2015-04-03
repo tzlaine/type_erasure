@@ -1137,12 +1137,6 @@ class Cursor(Structure):
         """
         return conf.lib.clang_CXXMethod_isStatic(self)
 
-    def is_const_method(self):
-        """Returns True if the cursor refers to a C++ member function or member
-        function template that is declared 'const'.
-        """
-        return conf.lib.clang_CXXMethod_isConst(self)
-
     def get_definition(self):
         """
         If the cursor is a reference to a declaration or a declaration of
