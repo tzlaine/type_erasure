@@ -4,6 +4,7 @@ import clang
 from clang.cindex import Index
 
 import argparse
+import os
 import re
 import sys
 
@@ -414,6 +415,15 @@ def prepare_form (form):
             form[i] = prepare_form_impl(form[i])
         return form
 
+def print_diagnostic(diag):
+    severities = ['ignored', 'note', 'warning', 'error', 'fatal error']
+    file_ = diag.location.file
+    line = diag.location.line
+    column = diag.location.column
+    severity = severities[diag.severity]
+    spelling = diag.spelling
+    os.write(2, '{file_}:{line}:{column} {severity}: {spelling}\n'.format(**locals()))
+
 # main
 
 if '--manual' in sys.argv:
@@ -466,6 +476,9 @@ data.filename = data.tu.spelling
 
 if data.filename == '':
     exit(1)
+
+for diag in data.tu.diagnostics:
+    print_diagnostic(diag)
 
 includes = [archetypes_lines[x.location.line - 1] for x in data.tu.get_includes() if x.depth == 1]
 for include in includes:
