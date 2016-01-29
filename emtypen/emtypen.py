@@ -98,13 +98,19 @@ def member_params (cursor):
     semicolon = ';'
     close_paren = ')'
     const_token = 'const'
+    comma = ','
 
     str = ''
     constness = ''
 
+    identifier_regex = re.compile(r'[_a-zA-Z][_a-zA-Z0-9]*')
+
+    probably_args = []
     close_paren_seen = False
     for i in range(len(tokens)):
         spelling = tokens[i].spelling
+        if identifier_regex.match(spelling) and i < len(tokens) - 1 and (tokens[i + 1].spelling == comma or tokens[i + 1].spelling == close_paren):
+            probably_args.append(spelling)
         if close_paren_seen and spelling == const_token:
             constness = 'const'
         if spelling == close_paren:
@@ -118,15 +124,26 @@ def member_params (cursor):
     args = [x for x in cursor.get_arguments()]
     args_str = ''
 
+    function_name = cursor.spelling
+
     for i in range(len(args)):
+        arg_cursor = args[i]
+        # Sometimes, libclang gets confused.  When it does, try our best to
+        # figure out the parameter names anyway.
+        if arg_cursor.spelling == '':
+            args_str = ', '.join(probably_args)
+            os.write(2,
+'''An error has occurred in determining the name of parameter {} of function
+{}. This usually occurs when libclang can't figure out the type of the
+parameter (often due to a typo or missing include somewhere).  We're using
+these possibly-wrong, heuristically-determined parameter names instead:
+'{}'.\n'''.format(i, function_name, args_str))
+            break
         if i:
             args_str += ', '
-        arg_cursor = args[i]
         args_str += arg_cursor.spelling
 
     return_str = cursor.result_type.kind != clang.cindex.TypeKind.VOID and 'return ' or ''
-
-    function_name = cursor.spelling
 
     return [str, args_str, return_str, function_name, constness]
 
