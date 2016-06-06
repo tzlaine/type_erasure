@@ -262,8 +262,8 @@ private:
             const std::ptrdiff_t rhs_offset =
                 handle_offset(rhs_handle, rhs_buffer);
             std::swap(buffer_, rhs_buffer);
-            handle_ = handle_ptr(char_ptr(&buffer_) + this_offset);
-            rhs_handle = handle_ptr(char_ptr(&rhs_buffer) + rhs_offset);
+            handle_ = handle_ptr(char_ptr(&buffer_) + rhs_offset);
+            rhs_handle = handle_ptr(char_ptr(&rhs_buffer) + this_offset);
         }
     }
 
